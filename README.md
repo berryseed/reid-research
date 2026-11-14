@@ -75,6 +75,22 @@ Each sweep writes a CSV and a PNG with two panels: symmetric and asymmetric retr
 Tokens are reduced after the attention of blocks 4, 7 and 10; `keep` is the fraction of patch tokens kept
 at each of those three points, so `keep=0.7` leaves about 34% of patch tokens at the end.
 
+## Pausing and resuming training
+
+`train.py` saves a resumable `<out>/ckpt.pth` after every epoch (`--ckpt-every N` to change; written
+atomically). It holds model, optimizer, AMP scaler, epoch, step (the LR schedule is a function of step),
+elapsed time, the metrics log, args and all RNG states (Python, NumPy, torch CPU/CUDA, PK sampler).
+It is deleted once `last.pth` is written, unless `--keep-ckpt`.
+
+- **Pause gracefully:** create an empty file `<out>/STOP` (e.g. `touch runs/tbsd_s0/STOP`). The run finishes
+  the current epoch, saves `ckpt.pth` and exits with code 3. Queue scripts stop when they see exit code 3.
+- **Resume:** rerun the *same* command with `--resume` (or rerun the queue script, which always passes it).
+  Key args (`--epochs`, `--lr`, `--seed`, modes...) must match the checkpoint or it refuses to resume.
+- Verified on CPU: pause after epoch 1 + resume gives bit-identical weights to an uninterrupted run.
+  On GPU (cuDNN/AMP nondeterminism) and with `--workers > 0` (worker augmentation streams restart) the
+  resumed run is statistically equivalent but not bit-identical.
+- A hard kill (Ctrl-C, shutdown) loses at most the current epoch; resume from the last `ckpt.pth`.
+
 ## Known limitations
 
 - `merge` follows the published ToMe idea (bipartite matching on attention keys, proportional attention)

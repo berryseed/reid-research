@@ -18,6 +18,7 @@ import os
 import random
 import time
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -54,7 +55,23 @@ def get_args():
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--no-amp", action="store_true")
+    p.add_argument("--resume", action="store_true",
+                   help="continue from <out>/ckpt.pth if it exists (otherwise start fresh)")
+    p.add_argument("--ckpt-every", type=int, default=1,
+                   help="save the resumable <out>/ckpt.pth every N epochs (0 = never)")
+    p.add_argument("--keep-ckpt", action="store_true",
+                   help="keep ckpt.pth after the run completes (default: removed once last.pth is saved)")
     return p.parse_args()
+
+
+PAUSE_EXIT_CODE = 3  # returned when a run stops at an epoch boundary because <out>/STOP exists
+
+
+def save_resume_ckpt(path, **state):
+    """Write atomically so an interruption mid-write never corrupts the previous checkpoint."""
+    tmp = path + ".tmp"
+    torch.save(state, tmp)
+    os.replace(tmp, path)
 
 
 def main():
@@ -71,8 +88,8 @@ def main():
     train_tf, test_tf = build_transforms(img_size, cfg.get("mean", (0.5,) * 3), cfg.get("std", (0.5,) * 3))
 
     pin = device.type == "cuda"
-    train_loader = DataLoader(ImageSet(train_items, train_tf),
-                              batch_sampler=PKSampler(train_items, args.P, args.K, args.seed),
+    sampler = PKSampler(train_items, args.P, args.K, args.seed)
+    train_loader = DataLoader(ImageSet(train_items, train_tf), batch_sampler=sampler,
                               num_workers=args.workers, pin_memory=pin, persistent_workers=args.workers > 0)
     test_kw = dict(batch_size=256, shuffle=False, num_workers=args.workers, pin_memory=pin)
     q_loader = DataLoader(ImageSet(query, test_tf), **test_kw)
@@ -97,8 +114,28 @@ def main():
 
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats()
-    train_seconds, step = 0.0, 0
-    for epoch in range(1, args.epochs + 1):
+    train_seconds, step, start_epoch = 0.0, 0, 1
+    ckpt_path = os.path.join(args.out, "ckpt.pth")
+    stop_path = os.path.join(args.out, "STOP")
+    if args.resume and os.path.exists(ckpt_path):
+        # our own file; weights_only=False is needed for the Python/NumPy RNG states
+        ck = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+        for k in ("model", "lr", "epochs", "P", "K", "seed", "sd_mode", "train_mode", "id_fraction"):
+            if ck["args"].get(k) != vars(args).get(k):
+                raise ValueError(f"--{k} differs from the checkpoint ({ck['args'].get(k)} vs {vars(args).get(k)})")
+        model.load_state_dict(ck["model"])
+        optim.load_state_dict(ck["optim"])
+        scaler.load_state_dict(ck["scaler"])
+        start_epoch, step, train_seconds, log = ck["epoch"] + 1, ck["step"], ck["train_seconds"], ck["log"]
+        sampler.rng.setstate(ck["rng"]["sampler"])
+        random.setstate(ck["rng"]["python"])
+        np.random.set_state(ck["rng"]["numpy"])
+        torch.set_rng_state(ck["rng"]["torch"])
+        if device.type == "cuda" and ck["rng"]["cuda"] is not None:
+            torch.cuda.set_rng_state_all(ck["rng"]["cuda"])
+        print(f"resumed from {ckpt_path}: epoch {ck['epoch']} done, step {step}, "
+              f"{train_seconds / 3600:.2f} h trained", flush=True)
+    for epoch in range(start_epoch, args.epochs + 1):
         model.train()
         t0 = time.perf_counter()
         sums = {"loss": 0.0, "id": 0.0, "tri": 0.0, "sd": 0.0}
@@ -146,6 +183,20 @@ def main():
         log["epochs"].append(rec)
         with open(os.path.join(args.out, "log.json"), "w") as f:
             json.dump(log, f, indent=1)
+        pause = os.path.exists(stop_path) and epoch < args.epochs
+        if args.ckpt_every and (epoch % args.ckpt_every == 0 or pause) and epoch < args.epochs:
+            save_resume_ckpt(
+                ckpt_path, model=model.state_dict(), optim=optim.state_dict(), scaler=scaler.state_dict(),
+                epoch=epoch, step=step, train_seconds=train_seconds, log=log, args=vars(args),
+                num_classes=num_classes,
+                rng={"sampler": sampler.rng.getstate(), "python": random.getstate(),
+                     "numpy": np.random.get_state(), "torch": torch.get_rng_state(),
+                     "cuda": torch.cuda.get_rng_state_all() if device.type == "cuda" else None})
+        if pause:
+            os.remove(stop_path)
+            print(f"paused after epoch {epoch} (STOP file). Resume with the same command plus --resume. "
+                  f"Checkpoint: {ckpt_path}", flush=True)
+            raise SystemExit(PAUSE_EXIT_CODE)
 
     with torch.no_grad():
         model.eval()
@@ -155,6 +206,8 @@ def main():
         json.dump(log, f, indent=1)
     torch.save({"model": model.state_dict(), "args": vars(args), "num_classes": num_classes},
                os.path.join(args.out, "last.pth"))
+    if os.path.exists(ckpt_path) and not args.keep_ckpt:
+        os.remove(ckpt_path)  # final weights are in last.pth; the resumable state is no longer needed
     print(f"done. train time {train_seconds / 3600:.2f} h, checkpoint: {os.path.join(args.out, 'last.pth')}")
 
 

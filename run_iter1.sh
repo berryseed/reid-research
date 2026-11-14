@@ -12,8 +12,10 @@ train() {  # name, extra args...
   if [ -f "runs/$name/last.pth" ]; then echo "skip train $name"; return; fi
   mkdir -p "runs/$name"
   echo "=== train $name $(date)"
-  $PY train.py --data "$DATA" --out "runs/$name" --seed 0 "$@" > "runs/$name/stdout.txt" 2>&1 \
-    || { echo "FAILED train $name (see runs/$name/stdout.txt)"; return 1; }
+  $PY train.py --data "$DATA" --out "runs/$name" --seed 0 --resume "$@" >> "runs/$name/stdout.txt" 2>&1
+  local rc=$?
+  if [ $rc -eq 3 ]; then echo "PAUSED $name (resume: rerun this script)"; exit 3; fi
+  [ $rc -eq 0 ] || { echo "FAILED train $name (see runs/$name/stdout.txt)"; return 1; }
   tail -2 "runs/$name/stdout.txt"
 }
 sweep() {
