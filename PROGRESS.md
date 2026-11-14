@@ -4,17 +4,41 @@ Current state at a glance. Detailed chronological record with exact commands and
 `PROGRESS_LOG.md`. Background, decisions and literature: `PROJECT_CONTEXT.md`.
 All numbers are Market-1501, ViT-S/16 (ImageNet-21k->1k augreg weights), 256x128, 120 epochs, unless stated.
 
-_Last updated: 2026-11-14 ~23:40 local._
+_Last updated: 2026-11-15 ~00:45 local. Project PAUSED by the user at this point._
+
+## Current status: paused, nothing running, nothing to resume
+- All queued training is **complete** (queue `run_iter1b.sh` finished 00:38). No run was interrupted, so there
+  is no partial run and no resumable `ckpt.pth`; every run has its final `runs/<name>/last.pth`.
+- Final checkpoints (all verified to load and produce finite embeddings on 2026-11-15; ~88 MB each, **not in Git**):
+  `runs/{base_s0,base_s1,base_s2,tbsd_s0,tbsd_s1,tbsd_s2,base_id25_s0,tbsd_id25_s0,base_e216_s0,tbsd_nosd_s0}/last.pth`
+  on the local disk of the training PC (`C:/Users/user/reid-research`). Dataset: `C:/Users/user/data/Market-1501-v15.09.15`.
+- Metrics, logs, configs (`log.json` holds all args), sweep CSVs and plots for every run are in Git.
+
+## How to resume the project
+1. Open the folder in Claude Code; read `CLAUDE.md`, then this file, then the end of `PROGRESS_LOG.md`.
+2. Environment: `.venv` (already installed). Recreate if needed: see `requirements.txt`.
+3. Re-check finished state (skips everything already done, starts nothing new):
+   `bash run_iter1b.sh /c/Users/user/data/Market-1501-v15.09.15`
+4. Re-make tables/figure: `PYTHONUTF8=1 .venv/Scripts/python.exe aggregate.py`
+5. Pick the next task from "Remaining tasks" below.
+
+Pausing/resuming future runs (new in `train.py`, verified bit-exact on CPU):
+- Pause a running run gracefully: `touch runs/<name>/STOP` -> stops after the current epoch, saves
+  `runs/<name>/ckpt.pth` (model, optimizer, AMP scaler, epoch, step/LR schedule, RNG states, log, args), exit code 3.
+- Resume: rerun the same queue script (it passes `--resume`), or the same `train.py` command plus `--resume`, e.g.
+  `.venv/Scripts/python.exe train.py --data /c/Users/user/data/Market-1501-v15.09.15 --out runs/<name> --seed <s> <same flags> --resume`
 
 ## Completed
 - [x] Environment: Windows 11, `.venv` with torch 2.15.0+cu132 on RTX 5080 (`requirements.txt`).
 - [x] Kit verified on GPU (synthetic + real data). Fixed: reduced-token paths now use fused SDPA
       (previously slower than full tokens). Throughput timed at batch 256.
 - [x] Market-1501 downloaded from the official source (outside repo: `C:/Users/user/data/`).
-- [x] Iteration-1 runs, seed 0: baseline, TBSD, 25%-ID baseline, 25%-ID TBSD, each with a token sweep.
+- [x] Seed 0: baseline, TBSD, 25%-ID baseline, 25%-ID TBSD, each with a token sweep.
 - [x] Seeds 1 and 2: baseline and TBSD (+ sweeps). 3-seed aggregate: `aggregate.py` ->
       `runs/iter1_seeds.csv`, `runs/iter1_seeds.png`.
-- [x] Git repository with checkpoints of code, metrics, plots and docs.
+- [x] Controls (seed 0): equal-GPU-hour baseline (216 epochs); TBSD without the distillation term (`--sd-weight 0`).
+- [x] Resumable checkpoints + graceful pause (STOP file) in `train.py`; queue scripts resume automatically.
+- [x] Git + private GitHub repo https://github.com/berryseed/reid-research.
 
 ## Experiment results (verified runs)
 
@@ -31,6 +55,21 @@ Training: baseline 0.22 GPU-h, TBSD 0.41 GPU-h (mean of 3). TBSD's full-token mA
 baseline, lower in all 3 seeds (-0.1, -0.6, -0.8): a small, probably real, cost. Its gain at keep 0.5
 (+13.4 full-token gallery, +20.7 reduced gallery) is far outside the seed spread.
 
+### Controls (seed 0 only), merge, mAP full-token gallery / reduced gallery
+| Run | GPU-h | keep 1.0 | keep 0.7 | keep 0.6 | keep 0.5 |
+| --- | --- | --- | --- | --- | --- |
+| Baseline, 216 epochs (equal GPU-h) | 0.36 | 85.28 | 83.55 / 82.19 | 81.25 / 78.51 | 69.02 / 59.40 |
+| TBSD without distillation (`--sd-weight 0`) | 0.41 | 83.63 | 83.13 / 82.78 | 82.48 / 81.67 | 80.62 / 78.37 |
+| TBSD (3-seed mean, for reference) | 0.41 | 83.95 | 83.70 / 83.48 | 83.29 / 82.71 | 81.98 / 80.26 |
+
+Reading (one seed for controls, needs more seeds):
+- Longer training gives +1.3 full-token mAP but no budget robustness (69.0 at keep 0.5).
+- **Most of TBSD's gain comes from multi-budget training itself** (reduced-token pass with its own ID +
+  triplet loss): 80.6 vs 68.6 at keep 0.5. The distillation term adds ~+1.4 (full-token gallery) / +1.9
+  (reduced gallery) and raises query cosine to the full-token embedding (0.944 vs 0.903). This matters for the
+  novelty claim: the contribution must be framed around budget-robust retrieval embeddings, and the role of
+  distillation needs more seeds before claiming it helps.
+
 ### Per run
 | Run | Seed | Full-token mAP / R1 | Merge keep 0.5, full-token gallery mAP | Train GPU-h |
 | --- | --- | --- | --- | --- |
@@ -40,29 +79,30 @@ baseline, lower in all 3 seeds (-0.1, -0.6, -0.8): a small, probably real, cost.
 | TBSD | 1 | 84.1 / 93.4 | see `runs/tbsd_s1/sweep.csv` | 0.45 |
 | baseline | 2 | 84.8 / 94.2 | 69.7 | 0.23 |
 | TBSD | 2 | 84.0 / 93.6 | see `runs/tbsd_s2/sweep.csv` | 0.39 |
+| baseline, 216 epochs | 0 | 85.3 / 94.5 | 69.0 | 0.36 |
+| TBSD without distillation | 0 | 83.6 / 93.8 | 80.6 | 0.41 |
 | baseline, 25% IDs | 0 | 71.6 / 87.2 | 51.2 | 0.06 |
 | TBSD, 25% IDs | 0 | 70.0 / 86.1 | 66.4 | 0.10 |
 
 Hypotheses: H1 reframed (asymmetric > symmetric; the real issue is query drift, which TBSD reduces);
 H2 untested; H3 not supported (seed 0); H4 untested. Figures: `runs/iter1_summary.png`, `runs/iter1_seeds.png`.
 
-## In progress
-- [ ] `run_iter1b.sh` controls (expected end ~00:50): equal-GPU-hour baseline (216 epochs, started 23:38),
-      then TBSD without distillation (`--sd-weight 0`). Re-run `aggregate.py` after; commit.
-
-## Remaining tasks
-1. Investigate class-token-attention selection doing worse than random (compare official EViT with fused token).
-2. Fix/ablate BNNeck running-stat mixing in TBSD.
-3. Fixed-budget training control (`--train-mode merge --train-keep 0.5`).
-4. Second dataset (MSMT17/CUHK03 loader, download approval) for H2; low-data at 10/50%, 3 seeds (H3).
-5. Latency at batch 1 and CPU (`evaluate.py --cpu`); OSNet and ViT-B references.
-6. Literature matrix to 30–40 full reads; full novelty check; one-page proposal.
-7. Update the cloud iteration-1 report with results.
+## Remaining tasks (suggested order)
+1. Seeds 1–2 for the no-distillation control (decides whether distillation is a real contribution).
+2. Fix/ablate BNNeck running-stat mixing in TBSD (candidate cause of the -0.5 full-token cost).
+3. Investigate class-token-attention selection doing worse than random (official EViT with fused token).
+4. Fixed-budget training control (`--train-mode merge --train-keep 0.5`).
+5. Second dataset (MSMT17/CUHK03 loader, needs download approval) for H2; low-data at 10/50%, 3 seeds (H3).
+6. Latency at batch 1 and on CPU (`evaluate.py --cpu`); OSNet and ViT-B references.
+7. Literature matrix to 30–40 full reads; full novelty check (incl. multi-budget/elastic token training); proposal.
+8. Update the cloud iteration-1 report with these results.
 
 ## Known issues
 - TBSD full-token mAP is ~0.5 below baseline, consistently over 3 seeds (-0.1, -0.6, -0.8). Candidate cause: BNNeck stat mixing.
 - TBSD's reduced pass updates BNNeck running stats (mixed statistics at eval).
 - TBSD costs ~1.85x training time. Equal-GPU-h baseline (seed 0): +1.3 full-token mAP over TBSD, but 69.0 vs 82.0 at keep 0.5.
+- Distillation term's own contribution is small (~+1.4 mAP at keep 0.5, one seed).
 - `merge`/`cls_attn` are own implementations, not official ToMe/EViT; GFLOPs are analytic estimates.
 - At batch 64 a ViT-S on the 5080 is overhead-bound; token reduction gives no wall-clock gain there.
-- Only Market-1501-format loaders exist.
+- Resume is bit-exact on CPU with `--workers 0`; on GPU / with workers it is statistically equivalent only.
+- Only Market-1501-format loaders exist. Iteration-1 runs predate resumable checkpoints.

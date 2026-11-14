@@ -184,3 +184,20 @@ Interpretation (one seed; needs 3 seeds before any claim):
   at equal training compute the baseline is **+1.3 mAP at full tokens** but loses from keep ~0.7 down
   (-2.0 at 0.6, -13.0 at 0.5). Longer training does not fix budget robustness (q_cos at 0.5 unchanged ~0.72).
 - Honest framing: TBSD trades ~1 mAP of full-token accuracy (at matched compute) for large gains at low budgets.
+
+### Control: TBSD without distillation `tbsd_nosd_s0` (`--sd-weight 0`, seed 0) — VERIFIED, single seed
+- Full-token 83.6 / 93.8, 0.41 GPU-h. Merge, full-token gallery / reduced gallery mAP:
+  0.8: 83.46/83.37, 0.7: 83.13/82.78, 0.6: 82.48/81.67, 0.5: **80.62/78.37**; q_cos at 0.5: 0.903 (TBSD 0.944).
+- Most of the budget robustness comes from multi-budget training (reduced pass with its own ID + triplet);
+  the cosine distillation term adds ~+1.4 / +1.9 mAP at keep 0.5. Needs seeds 1–2 before any claim.
+- Queue `run_iter1b.sh` finished 00:38 (all runs complete).
+
+## Session 1 end — project paused by the user (2026-11-15 ~00:45 local)
+- Added to `train.py`: per-epoch resumable `ckpt.pth` (atomic write; model, optimizer, scaler, epoch, step,
+  train time, log, args, Python/NumPy/torch/CUDA/sampler RNG states), `--resume`, `--ckpt-every`, `--keep-ckpt`,
+  graceful pause via `<out>/STOP` (exit code 3). Queue scripts now pass `--resume`, append to stdout.txt,
+  and exit on code 3.
+- Verification: synthetic data, CPU, workers 0, TBSD config, 3 epochs: run paused after epoch 1 and resumed
+  -> max weight difference vs uninterrupted run = 0.0, identical losses/mAP. Resume refuses mismatched args.
+- All 10 final `last.pth` checkpoints load into `ReIDViT` and give finite 384-d embeddings.
+- No training was interrupted; nothing to resume. No python processes left; GPU idle.

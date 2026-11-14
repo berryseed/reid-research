@@ -37,6 +37,26 @@ Current state and history: `PROGRESS_LOG.md` — **read it first and append to i
   Run scripts with `.venv/Scripts/python.exe` (Bash) or `.venv\Scripts\python.exe` (PowerShell).
 - Long runs (training) go in the background; log to `runs/<name>/stdout.txt`.
 
+## Pause / resume (added 2026-11-15)
+- `train.py` writes resumable `<out>/ckpt.pth` each epoch; `touch <out>/STOP` pauses at the next epoch
+  boundary (exit code 3); resume = same command + `--resume`. Queue scripts pass `--resume` and stop on code 3.
+  Details in README "Pausing and resuming training". Runs started before this change (all of iteration 1)
+  had no mid-run checkpoints.
+- To pause the project safely: STOP-file the running run (or let it finish), wait for the process to exit,
+  commit/push metrics, confirm no python.exe from `.venv` is running.
+
+## Key decisions and results so far (details: PROGRESS.md)
+- Main backbone ViT-S/16 (open question to instructor: ViT-B?). Market-1501 at `C:/Users/user/data/`.
+- TBSD (merge, random keep) is the method under test. 3 seeds: 81.98±0.18 vs 68.56±1.14 mAP at keep 0.5
+  (full-token gallery); full-token cost ~0.5 mAP (TBSD lower in all seeds); ~1.85x training time.
+- Equal-GPU-h baseline (216 ep) gains +1.3 full-token mAP but not budget robustness.
+- No-distillation control (`--sd-weight 0`) reaches 80.6 at keep 0.5: most of the gain is multi-budget training;
+  distillation adds ~+1.4 (one seed). Do not claim distillation as the source of the gain without more seeds.
+- Project paused 2026-11-15 00:45 with all runs complete; resume instructions at the top of PROGRESS.md.
+- H1 reframed (asymmetric > symmetric; problem is query drift). H3 not supported (one seed).
+- cls_attn selection < random selection: unexplained, verify against official EViT before claiming.
+- Throughput must be timed at batch >= 256 on GPU (batch 64 is overhead-bound).
+
 ## Code layout
 - `common.py` data parsing (Market-1501 names), PK sampler, `ReIDViT` + token reduction
   (`none|merge|cls_attn|random`, reduction after attention of blocks 4/7/10), analytic GFLOPs, triplet, mAP/CMC.
