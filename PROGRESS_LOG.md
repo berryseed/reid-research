@@ -176,3 +176,11 @@ Interpretation (one seed; needs 3 seeds before any claim):
   all three seeds) and ~1.85x training time. Controls (equal GPU-h baseline, no-distillation) still running.
 - Git: repo initialised, private GitHub remote https://github.com/berryseed/reid-research (gh CLI 2.104.0
   installed via winget; user signed in as berryseed). Commits a47b61b (initial), e1da769 (base_s2).
+
+### Control: equal-GPU-hour baseline `base_e216_s0` (216 epochs, seed 0) — VERIFIED, single seed
+- Full-token mAP/R1 **85.3 / 94.5**, 0.36 GPU-h (TBSD mean 0.41 h). Merge sweep, full-token gallery mAP:
+  0.8: 84.61, 0.7: 83.55, 0.6: 81.25, 0.5: **69.02** (q_cos 0.716). Reduced gallery at 0.5: 59.40.
+- vs TBSD 3-seed mean (83.95 full; 83.89/83.70/83.29/81.98 at 0.8/0.7/0.6/0.5):
+  at equal training compute the baseline is **+1.3 mAP at full tokens** but loses from keep ~0.7 down
+  (-2.0 at 0.6, -13.0 at 0.5). Longer training does not fix budget robustness (q_cos at 0.5 unchanged ~0.72).
+- Honest framing: TBSD trades ~1 mAP of full-token accuracy (at matched compute) for large gains at low budgets.

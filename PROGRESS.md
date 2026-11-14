@@ -62,7 +62,7 @@ H2 untested; H3 not supported (seed 0); H4 untested. Figures: `runs/iter1_summar
 ## Known issues
 - TBSD full-token mAP is ~0.5 below baseline, consistently over 3 seeds (-0.1, -0.6, -0.8). Candidate cause: BNNeck stat mixing.
 - TBSD's reduced pass updates BNNeck running stats (mixed statistics at eval).
-- TBSD costs ~1.8–2x training time; fairness controls pending.
+- TBSD costs ~1.85x training time. Equal-GPU-h baseline (seed 0): +1.3 full-token mAP over TBSD, but 69.0 vs 82.0 at keep 0.5.
 - `merge`/`cls_attn` are own implementations, not official ToMe/EViT; GFLOPs are analytic estimates.
 - At batch 64 a ViT-S on the 5080 is overhead-bound; token reduction gives no wall-clock gain there.
 - Only Market-1501-format loaders exist.
