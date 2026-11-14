@@ -1,0 +1,50 @@
+# Environments and caches
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.cache/
+.pytest_cache/
+
+# Datasets (live outside the repo in C:/Users/user/data; never commit images)
+data/
+datasets/
+fake_market/
+*.zip
+*.tar
+*.tar.gz
+*.jpg
+*.jpeg
+
+# Model checkpoints and large binaries (keep metrics, configs and plots)
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+*.onnx
+*.npy
+*.npz
+
+# Smoke tests on synthetic data (not results)
+runs/smoke*/
+
+# Secrets and credentials
+.env
+.env.*
+*.key
+*.pem
+*secret*
+*credential*
+*.token
+token.json
+hf_token*
+.netrc
+
+# OS / editor
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/

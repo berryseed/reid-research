@@ -1,0 +1,163 @@
+# PROGRESS_LOG.md
+
+Append-only log. Newest session at the bottom. Each entry: what ran (exact command), outputs, numbers, issues, next step.
+Numbers from synthetic data (`fake_market`) are install checks only, never results.
+
+---
+
+## Session 1 (Claude Code) — 2026-11-14 ~18:45–19:30 Dhaka
+
+**Starting point:** kit written in the earlier chat and only CPU-tested on synthetic data; no GPU run, no Market-1501
+run (PROJECT_CONTEXT.md §8). Left off at §10 A step 1 (environment setup).
+
+### Done
+- Confirmed OS: Windows 11 Pro 10.0.26200. Python 3.13.17.
+- Created project venv `.venv`: torch 2.15.0+cu132, torchvision 0.29.2+cu132, timm 1.0.31, numpy, pillow, matplotlib.
+  `torch.cuda.is_available()` = True on the RTX 5080. (Same torch build as `~/resnet-lab/.venv`.)
+- Wrote `CLAUDE.md` (persistent instructions) and this log.
+- GPU smoke tests on `fake_market` (synthetic), all ran end to end:
+  - `train.py ... --out runs/smoke --epochs 1 --P 4 --K 2 --eval-every 1` (baseline)
+  - `... --out runs/smoke_tbsd --epochs 2 --sd-mode merge --sd-keep random` (TBSD; sd loss 0.064 -> 0.001)
+  - `... --out runs/smoke_low --id-fraction 0.5 --train-mode cls_attn --train-keep 0.7`
+  - `evaluate.py` sweep on both checkpoints; CSV + PNG written; `keep=1.0` rows equal `none` rows (check passed);
+    GFLOPs 2.930 / 1.921 / 1.463 at keep 1.0 / 0.7 / 0.5 (as expected).
+- `bench_step.py` (new): compute-only step timing on random input, ViT-S, batch 64, AMP:
+  baseline 24.8 ms/step (~0.17 h for 120 Market epochs, compute only), peak VRAM 1.80 GB;
+  TBSD 47.9 ms/step (~0.32 h), peak 2.90 GB. Real runs will be longer because of JPEG decoding/augmentation
+  on 4 workers; time the first real run.
+
+### Bug/issue found and fixed: token reduction was slower than full tokens on GPU
+- Reduction layers and all post-merge blocks used the explicit-attention path (`attention_with_maps`), while
+  full-token blocks use timm's fused SDPA. Result: merge keep 0.7 ran at 6.7k img/s vs 9.3k full (batch 64).
+- Fix (`common.py`): new `attention_fast` uses `F.scaled_dot_product_attention` with `log(size)` as an additive
+  bias and computes only the class-token attention row when `cls_attn` needs it. `ReIDViT.fast_attn = True` by
+  default; `False` keeps the old reference path. Max difference vs reference: 1.8e-5 (fp32, BNNeck output).
+- Second finding: at batch 64 ViT-S on the 5080 is launch-overhead bound, so reduction barely helps wall-clock.
+  Throughput with fast path (img/s, AMP, forward only):
+
+  | batch | none | merge 0.7 | merge 0.5 | cls_attn 0.7 | random 0.5 |
+  | --- | --- | --- | --- | --- | --- |
+  | 64 | 9272 | 7572 | 7578 | 9651 | 10174 |
+  | 256 | 8531 | 12275 | 15238 | 12988 | 16460 |
+
+  So `evaluate.py` now times throughput at batch 256 on GPU (`--tp-batch` to change). For the paper: report
+  latency at batch 1 and at a large batch, and on CPU; GFLOPs savings do not translate to small-batch GPU speed.
+  Merge also has overhead over plain selection (15.2k vs 16.5k at keep 0.5).
+- `evaluate.py` now loads checkpoints with `weights_only=True` explicitly.
+
+### Known issues noted (not fixed)
+- TBSD's reduced pass runs BNNeck in train mode, so BN running stats mix full- and reduced-token features;
+  full-token evaluation uses those mixed stats. Check on real data; option: separate BN for reduced pass, or
+  eval-mode BN for the second pass.
+- HF Hub warns about symlinks on Windows (harmless; set `HF_HUB_DISABLE_SYMLINKS_WARNING=1`).
+
+### Blocker
+- **Market-1501 is not on this machine** (searched home, Downloads, D:). Downloading needs the user's OK /
+  the user to fetch it. Once present: `bash run_iter1.sh <Market root>` runs §10 A steps 4–8 in order,
+  logging to `runs/<name>/stdout.txt`, skipping finished runs.
+
+### Next
+1. Get Market-1501 -> run `run_iter1.sh` -> fill results into the report (interpretation rules: PROJECT_CONTEXT §10 A.9).
+2. Check baseline mAP lands in the 80s (sanity); then H1 diagnosis from `runs/base_s0/sweep.csv`.
+
+---
+
+## Session 1, continued — first Market-1501 results (2026-11-14, local clock BST 19:00–)
+
+### Dataset
+- User approved the download. Source: official Zheng lab page (zheng-lab-anu.github.io/Project/project_reid.html),
+  Google Drive link. `Market-1501-v15.09.15.zip`, 152,733,771 bytes (matches Academic Torrents listing).
+  Extracted to `C:/Users/user/data/Market-1501-v15.09.15` (zip kept in `C:/Users/user/data/dl/`).
+- Counts: train 12936 imgs / 751 IDs, query 3368 / 750 IDs, gallery 19732 (15913 after dropping pid -1 junk). Standard.
+- Cite Zheng et al., ICCV 2015 if used.
+
+### Queue
+`bash run_iter1.sh /c/Users/user/data/Market-1501-v15.09.15 > runs/queue_iter1.txt` (background). Order:
+base_s0 -> sweep -> tbsd_s0 -> sweep -> base_id25_s0 -> sweep -> tbsd_id25_s0 -> sweep.
+
+### base_s0 (ViT-S/16, ImageNet-21k->1k augreg weights, 120 ep, seed 0) — VERIFIED RUN, single seed
+- mAP/R1 by epoch: 20: 81.3/92.5, 40: 82.5/93.5, 60: 83.1/93.4, 80: 83.7/93.2, 100: 83.8/93.4, **120: 83.9/93.5**.
+- Train time 0.22 GPU-h (13.4 min compute; ~6.2 s/epoch), peak VRAM 1.81 GB. Sanity check passed (80s).
+
+### base_s0 sweep (`runs/base_s0/sweep.csv`, `.png`), mAP; img/s at batch 256 AMP
+| mode | keep | GFLOPs | img/s | sym mAP | asym mAP | q_cos |
+| --- | --- | --- | --- | --- | --- | --- |
+| none | 1.0 | 2.93 | 8252 | 83.89 | 83.89 | 1.000 |
+| merge | 0.8 | 2.22 | 11146 | 82.46 | 83.14 | 0.980 |
+| merge | 0.7 | 1.92 | 12896 | 80.29 | 81.87 | 0.952 |
+| merge | 0.6 | 1.68 | 14453 | 75.73 | 79.13 | 0.897 |
+| merge | 0.5 | 1.46 | 16066 | 58.69 | 67.40 | 0.729 |
+| cls_attn | 0.7 | 1.92 | 13652 | 61.34 | 69.65 | 0.778 |
+| cls_attn | 0.5 | 1.46 | 15151 | 18.58 | 31.29 | 0.452 |
+| random | 0.7 | 1.92 | 13896 | 67.52 | 77.29 | 0.848 |
+| random | 0.5 | 1.46 | 17297 | 27.55 | 55.77 | 0.601 |
+
+### Interpretation (single seed, training-free reduction only)
+1. **H1 as originally framed is not confirmed.** Asymmetric mAP is *higher* than symmetric at every budget
+   (full-token gallery helps). The real cost is the gap between asymmetric and full-token mAP
+   (merge 0.6: 79.1 vs 83.9, -4.8; merge 0.5: -16.5), which tracks query-embedding drift (q_cos 0.90, 0.73).
+   TBSD's test: shrink that gap (raise q_cos) without losing full-token mAP.
+2. **Class-token attention selection (EViT-style, no fused token) is worse than random selection** at every
+   keep <= 0.8 (e.g. keep 0.7 sym 61.3 vs random 67.5). Unexpected; candidate gap ("which tokens matter for
+   re-ID identity is not what CLS attention says"). Check first: omitted fused token, attention from a single
+   layer, possible attention "sink"/register tokens in augreg ViT. Must confirm vs official EViT before claiming.
+3. Merge is clearly the best training-free rule; it keeps >= 98% of mAP down to keep 0.8 (1.32x GFLOPs saving,
+   1.35x throughput) and degrades sharply below 0.6.
+
+### tbsd_s0 (`--sd-mode merge --sd-keep random`, 120 ep, seed 0) — VERIFIED RUN, single seed
+- Full-token mAP/R1 at 120: **83.8 / 93.9** (baseline 83.9 / 93.5: no loss, difference inside expected noise).
+- Train time **0.40 GPU-h vs 0.22** for baseline (1.8x, two forward passes per step). sd loss 0.030 -> 0.015.
+
+| mode | keep | GFLOPs | base sym | TBSD sym | base asym | TBSD asym | base q_cos | TBSD q_cos |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| merge | 0.8 | 2.22 | 82.46 | 83.66 | 83.14 | 83.74 | 0.980 | 0.996 |
+| merge | 0.7 | 1.92 | 80.29 | 83.34 | 81.87 | 83.56 | 0.952 | 0.990 |
+| merge | 0.6 | 1.68 | 75.73 | 82.65 | 79.13 | 83.14 | 0.897 | 0.978 |
+| merge | 0.5 | 1.46 | 58.69 | **80.13** | 67.40 | **81.90** | 0.729 | 0.944 |
+| cls_attn | 0.7 | 1.92 | 61.34 | 68.71 | 69.65 | 74.65 | 0.778 | 0.846 |
+| random | 0.7 | 1.92 | 67.52 | 77.61 | 77.29 | 80.96 | 0.848 | 0.932 |
+| random | 0.5 | 1.46 | 27.55 | 59.14 | 55.77 | 72.41 | 0.601 | 0.791 |
+
+Interpretation (one seed; needs 3 seeds before any claim):
+- **TBSD passes its first test.** With merging, one set of weights keeps 95.5% of full-token mAP at 50% of the
+  backbone GFLOPs (asym 81.9 vs 83.8), vs 80% for the baseline. Gain grows as budget shrinks (+0.6 at 0.8,
+  +14.5 at 0.5 asym; +21.4 sym). q_cos rises accordingly: the reduced embedding stays in the full-token space.
+- Gains transfer partly to reduction rules not seen in training (cls_attn, random), so TBSD is not only
+  memorising the merge rule. Ranking of rules is unchanged (merge > random > cls_attn).
+- With TBSD, asym-sym gap shrinks to ~1.8 at keep 0.5 (base 8.7).
+- Fairness to-do: TBSD used 1.8x GPU-hours. Needed controls: (a) baseline trained ~1.8x longer;
+  (b) baseline fine-tuned with merged tokens (single-budget, no distillation) at same cost;
+  (c) TBSD without the sd term (only multi-budget CE+triplet) to isolate the distillation's contribution;
+  (d) BN running-stat issue (see known issues).
+
+### Low-data pair (`--id-fraction 0.25`, 188 IDs / 3178 imgs, seed 0) — VERIFIED RUNS, single seed
+- base_id25_s0: full-token mAP/R1 **71.6 / 87.2**, 0.06 GPU-h. tbsd_id25_s0: **70.0 / 86.1**, 0.10 GPU-h.
+
+| mode | keep | base sym | TBSD sym | base asym | TBSD asym | base q_cos | TBSD q_cos |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| none | 1.0 | 71.65 | 70.02 | 71.65 | 70.02 | 1.000 | 1.000 |
+| merge | 0.7 | 67.40 | 69.23 | 68.98 | 69.59 | 0.946 | 0.986 |
+| merge | 0.5 | 43.92 | 63.83 | 51.24 | 66.36 | 0.711 | 0.929 |
+| cls_attn | 0.7 | 56.99 | 53.78 | 62.36 | 57.58 | 0.853 | 0.858 |
+| random | 0.5 | 19.96 | 42.11 | 42.82 | 56.18 | 0.610 | 0.795 |
+
+- **H3 (TBSD as low-data regulariser) not supported** in this run: full-token mAP -1.6 with TBSD (one seed; may be
+  noise, but no sign of a gain). Budget robustness still holds at low data (merge 0.5 asym +15.1).
+- With 25% IDs, TBSD *hurts* cls_attn (-4.8 asym at 0.7) — transfer to unseen rules is not reliable.
+
+### State at end of queue (2026-11-14 20:40 BST local clock)
+- All 4 runs + 4 sweeps done; queue log `runs/queue_iter1.txt`. Summary figure: `runs/iter1_summary.png`
+  (`plot_results.py`). Total GPU time for the 4 trainings: 0.78 h.
+- Headline (seed 0): TBSD keeps full-token mAP (83.8 vs 83.9) and gives 81.9 vs 67.4 mAP at 50% backbone GFLOPs
+  (merge keep 0.5, full-token gallery). Cost: 1.8x training time.
+- Hypothesis status: H1 reframed (asym > sym; the problem is query drift vs full-token, which TBSD fixes);
+  H2 untested (no second dataset); H3 not supported; H4 untested.
+- Iteration-1 report (cloud doc) NOT yet updated with these results.
+
+### Next (priority order)
+1. Seeds 1, 2 for base and TBSD (full IDs) -> mean/std. ~1.3 GPU-h.
+2. Controls for fairness: baseline at ~216 epochs (equal GPU-h); TBSD with `--sd-weight 0` (multi-budget
+   training without distillation) to isolate the distillation term; fixed-budget `--train-mode merge --train-keep 0.5`.
+3. Investigate cls_attn < random (official EViT with fused token; attention-sink check).
+4. Fix/ablate BNNeck running-stat mixing in TBSD.
+5. Second dataset for H2 (MSMT17 or CUHK03 loader; needs download approval). Latency at batch 1 and CPU.

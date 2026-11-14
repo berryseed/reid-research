@@ -1,0 +1,18 @@
+{'mode': 'none', 'keep': 1.0, 'final_tokens': 129, 'gflops': 2.93, 'img_s': 9007.5, 'sym_mAP': 70.02, 'sym_R1': 86.13, 'asym_mAP': 70.02, 'asym_R1': 86.13, 'q_cos': 1.0}
+{'mode': 'merge', 'keep': 0.9, 'final_tokens': 96, 'gflops': 2.558, 'img_s': 9664.3, 'sym_mAP': 70.02, 'sym_R1': 86.25, 'asym_mAP': 70.01, 'asym_R1': 86.16, 'q_cos': 0.9984}
+{'mode': 'merge', 'keep': 0.8, 'final_tokens': 68, 'gflops': 2.217, 'img_s': 11154.1, 'sym_mAP': 69.88, 'sym_R1': 86.22, 'asym_mAP': 69.96, 'asym_R1': 86.37, 'q_cos': 0.9939}
+{'mode': 'merge', 'keep': 0.7, 'final_tokens': 46, 'gflops': 1.921, 'img_s': 12915.9, 'sym_mAP': 69.23, 'sym_R1': 85.78, 'asym_mAP': 69.59, 'asym_R1': 85.75, 'q_cos': 0.9858}
+{'mode': 'merge', 'keep': 0.6, 'final_tokens': 30, 'gflops': 1.681, 'img_s': 13742.4, 'sym_mAP': 67.98, 'sym_R1': 84.74, 'asym_mAP': 68.82, 'asym_R1': 85.33, 'q_cos': 0.9713}
+{'mode': 'merge', 'keep': 0.5, 'final_tokens': 17, 'gflops': 1.463, 'img_s': 16079.2, 'sym_mAP': 63.83, 'sym_R1': 82.57, 'asym_mAP': 66.36, 'asym_R1': 83.19, 'q_cos': 0.9287}
+{'mode': 'cls_attn', 'keep': 0.9, 'final_tokens': 96, 'gflops': 2.558, 'img_s': 10366.6, 'sym_mAP': 67.84, 'sym_R1': 85.12, 'asym_mAP': 68.52, 'asym_R1': 84.41, 'q_cos': 0.98}
+{'mode': 'cls_attn', 'keep': 0.8, 'final_tokens': 68, 'gflops': 2.217, 'img_s': 12014.8, 'sym_mAP': 62.55, 'sym_R1': 82.04, 'asym_mAP': 64.44, 'asym_R1': 81.32, 'q_cos': 0.932}
+{'mode': 'cls_attn', 'keep': 0.7, 'final_tokens': 46, 'gflops': 1.921, 'img_s': 13662.1, 'sym_mAP': 53.78, 'sym_R1': 75.95, 'asym_mAP': 57.58, 'asym_R1': 74.52, 'q_cos': 0.8583}
+{'mode': 'cls_attn', 'keep': 0.6, 'final_tokens': 30, 'gflops': 1.681, 'img_s': 15320.6, 'sym_mAP': 41.77, 'sym_R1': 65.23, 'asym_mAP': 47.73, 'asym_R1': 63.18, 'q_cos': 0.7651}
+{'mode': 'cls_attn', 'keep': 0.5, 'final_tokens': 17, 'gflops': 1.463, 'img_s': 17011.2, 'sym_mAP': 26.85, 'sym_R1': 51.22, 'asym_mAP': 33.14, 'asym_R1': 43.74, 'q_cos': 0.6321}
+{'mode': 'random', 'keep': 0.9, 'final_tokens': 96, 'gflops': 2.558, 'img_s': 10539.8, 'sym_mAP': 68.34, 'sym_R1': 85.07, 'asym_mAP': 69.33, 'asym_R1': 85.66, 'q_cos': 0.9856}
+{'mode': 'random', 'keep': 0.8, 'final_tokens': 68, 'gflops': 2.217, 'img_s': 12146.2, 'sym_mAP': 65.59, 'sym_R1': 82.96, 'asym_mAP': 68.11, 'asym_R1': 84.41, 'q_cos': 0.9638}
+{'mode': 'random', 'keep': 0.7, 'final_tokens': 46, 'gflops': 1.921, 'img_s': 13932.6, 'sym_mAP': 61.63, 'sym_R1': 80.67, 'asym_mAP': 66.29, 'asym_R1': 83.31, 'q_cos': 0.9307}
+{'mode': 'random', 'keep': 0.6, 'final_tokens': 30, 'gflops': 1.681, 'img_s': 15589.0, 'sym_mAP': 54.82, 'sym_R1': 76.99, 'asym_mAP': 63.02, 'asym_R1': 80.52, 'q_cos': 0.8822}
+{'mode': 'random', 'keep': 0.5, 'final_tokens': 17, 'gflops': 1.463, 'img_s': 17355.2, 'sym_mAP': 42.11, 'sym_R1': 65.71, 'asym_mAP': 56.18, 'asym_R1': 73.34, 'q_cos': 0.7948}
+saved runs/tbsd_id25_s0/sweep.csv
+saved runs/tbsd_id25_s0/sweep.png

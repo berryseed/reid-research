@@ -1,0 +1,17 @@
+=== train base_s0 Sat Nov 14 19:01:44 BST 2026
+epoch 120/120 loss 1.048 id 1.046 tri 0.002 sd 0.000 | 13.4 min | mAP 83.9 R1 93.5
+done. train time 0.22 h, checkpoint: runs/base_s0\last.pth
+=== sweep base_s0 Sat Nov 14 19:19:01 BST 2026
+=== train tbsd_s0 Sat Nov 14 19:28:15 BST 2026
+epoch 120/120 loss 2.090 id 1.035 tri 0.001 sd 0.015 | 24.2 min | mAP 83.8 R1 93.9
+done. train time 0.40 h, checkpoint: runs/tbsd_s0\last.pth
+=== sweep tbsd_s0 Sat Nov 14 19:55:55 BST 2026
+=== train base_id25_s0 Sat Nov 14 20:05:09 BST 2026
+epoch 120/120 loss 0.888 id 0.887 tri 0.001 sd 0.000 | 3.6 min | mAP 71.6 R1 87.2
+done. train time 0.06 h, checkpoint: runs/base_id25_s0\last.pth
+=== sweep base_id25_s0 Sat Nov 14 20:12:15 BST 2026
+=== train tbsd_id25_s0 Sat Nov 14 20:21:25 BST 2026
+epoch 120/120 loss 1.783 id 0.883 tri 0.000 sd 0.015 | 6.1 min | mAP 70.0 R1 86.1
+done. train time 0.10 h, checkpoint: runs/tbsd_id25_s0\last.pth
+=== sweep tbsd_id25_s0 Sat Nov 14 20:30:59 BST 2026
+=== all done Sat Nov 14 20:40:03 BST 2026
