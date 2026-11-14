@@ -12,7 +12,7 @@ _Last updated: 2026-11-14 ~22:50 local._
       (previously slower than full tokens). Throughput timed at batch 256.
 - [x] Market-1501 downloaded from the official source (outside repo: `C:/Users/user/data/`).
 - [x] Iteration-1 runs, seed 0: baseline, TBSD, 25%-ID baseline, 25%-ID TBSD, each with a token sweep.
-- [x] Seed 1: baseline and TBSD (+ sweeps).
+- [x] Seed 1: baseline and TBSD (+ sweeps). Seed 2: baseline (+ sweep).
 - [x] Git repository with checkpoints of code, metrics, plots and docs.
 
 ## Experiment results (verified runs)
@@ -22,6 +22,7 @@ _Last updated: 2026-11-14 ~22:50 local._
 | TBSD (merge, random keep) | 0 | 83.8 / 93.9 | 81.9 | 0.40 |
 | baseline | 1 | 84.7 / 94.2 | see `runs/base_s1/sweep.csv` | 0.22 |
 | TBSD | 1 | 84.1 / 93.4 | see `runs/tbsd_s1/sweep.csv` | 0.45 |
+| baseline | 2 | 84.8 / 94.2 | 69.7 | 0.23 |
 | baseline, 25% IDs | 0 | 71.6 / 87.2 | 51.2 | 0.06 |
 | TBSD, 25% IDs | 0 | 70.0 / 86.1 | 66.4 | 0.10 |
 
