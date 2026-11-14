@@ -161,3 +161,18 @@ Interpretation (one seed; needs 3 seeds before any claim):
 3. Investigate cls_attn < random (official EViT with fused token; attention-sink check).
 4. Fix/ablate BNNeck running-stat mixing in TBSD.
 5. Second dataset for H2 (MSMT17 or CUHK03 loader; needs download approval). Latency at batch 1 and CPU.
+
+---
+
+## Session 1, continued — seeds 1–2 and Git (2026-11-14, 21:34–23:40 local)
+
+- Queue `run_iter1b.sh` (log `runs/queue_iter1b.txt`): base_s1, tbsd_s1, base_s2, tbsd_s2 done with sweeps.
+  Full-token mAP/R1: base_s1 84.7/94.2, tbsd_s1 84.1/93.4, base_s2 84.8/94.2, tbsd_s2 84.0/93.6.
+  GPU-h: base 0.22/0.23, TBSD 0.45/0.39.
+- 3-seed aggregate (`aggregate.py`, `runs/iter1_seeds.csv/.png`), merge, mean ± std mAP:
+  full tokens: base 84.45±0.49, TBSD 83.95±0.13. Keep 0.5 full-token gallery: base 68.56±1.14, TBSD 81.98±0.18;
+  reduced gallery: 59.60±1.12 vs 80.26±0.13. q_cos at 0.5: 0.733 vs 0.944.
+- **Conclusion (3 seeds):** TBSD's budget robustness is a robust effect. It costs ~0.5 full-token mAP (lower in
+  all three seeds) and ~1.85x training time. Controls (equal GPU-h baseline, no-distillation) still running.
+- Git: repo initialised, private GitHub remote https://github.com/berryseed/reid-research (gh CLI 2.104.0
+  installed via winget; user signed in as berryseed). Commits a47b61b (initial), e1da769 (base_s2).

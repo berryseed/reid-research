@@ -11,3 +11,7 @@ epoch 120/120 loss 1.042 id 1.041 tri 0.001 sd 0.000 | 13.8 min | mAP 84.8 R1 94
 done. train time 0.23 h, checkpoint: runs/base_s2\last.pth
 === sweep base_s2 Sat Nov 14 22:56:56 BST 2026
 === train tbsd_s2 Sat Nov 14 23:04:42 BST 2026
+epoch 120/120 loss 2.088 id 1.035 tri 0.001 sd 0.013 | 23.4 min | mAP 84.0 R1 93.6
+done. train time 0.39 h, checkpoint: runs/tbsd_s2\last.pth
+=== sweep tbsd_s2 Sat Nov 14 23:30:57 BST 2026
+=== train base_e216_s0 Sat Nov 14 23:38:18 BST 2026
