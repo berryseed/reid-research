@@ -201,3 +201,58 @@ Interpretation (one seed; needs 3 seeds before any claim):
   -> max weight difference vs uninterrupted run = 0.0, identical losses/mAP. Resume refuses mismatched args.
 - All 10 final `last.pth` checkpoints load into `ReIDViT` and give finite 384-d embeddings.
 - No training was interrupted; nothing to resume. No python processes left; GPU idle.
+
+---
+
+## Session 2 (Claude Code) — 2026-11-15, started 10:25 local
+
+**Resume state:** no python processes, GPU idle, `git status` clean, all 10 iteration-1 runs have `last.pth`,
+no `ckpt.pth` anywhere -> nothing to restore; continued from "Remaining tasks" in PROGRESS.md.
+User's standing autonomy instructions saved in CLAUDE.md (commit ebf5913).
+
+### Decisions (reasoning)
+- Order of GPU work = how much each item changes the paper's claim: (A) seeds for the no-distillation control
+  and the BNNeck ablation decide what the method *is*; (B) fixed-budget and equal-GPU-h controls with 3 seeds make
+  the comparison fair; (C) low-data at 10/25/50% tests H3 properly; (D) ViT-B answers the open backbone question.
+- BNNeck ablation implemented as `--sd-bn nostat` (reduced pass normalises with batch stats, momentum 0 so running
+  stats come from the full-token pass only). Chosen over a separate BN for the reduced pass because a second BN
+  would make reduced and full embeddings pass through different affine maps, which works against compatibility.
+- Selection diagnostics are eval-only on the six existing checkpoints: `cls_attn_fuse` (EViT's fused inattentive
+  token, the piece missing from our `cls_attn`) and `cls_attn_low` (keep the LEAST attended tokens; if this is
+  not much worse than `cls_attn`, class attention carries little identity information at these layers).
+- H2 (cross-dataset) needs a second dataset. Not downloaded: the dataset rule in CLAUDE.md still requires the
+  user's OK, and MSMT17 needs a signed release agreement. Deferred, listed as open.
+- OSNet reference: not in timm; would need torchreid weights from a third-party Google Drive. Deferred, listed.
+
+### Code (commit after ebf5913; verified on synthetic data before the queue started)
+- `train.py --sd-bn {shared,nostat}`; resume check extended to sd_weight/sd_bn/sd_keep/train_keep.
+- `common.py`: modes `cls_attn_fuse`, `cls_attn_low`. Checks: keep=1.0 equals `none` for all six modes; fast path
+  vs reference path max diff 1.8e-6; `nostat` leaves `running_mean` bit-identical, `shared` changes it.
+- `bench_latency.py`, `run_iter2.sh` (phases S A B C D), `aggregate2.py`.
+- Queue: `bash run_iter2.sh /c/Users/user/data/Market-1501-v15.09.15 S A >> runs/queue_iter2.txt` started 10:29.
+
+### Novelty check, round 2 (8 web searches, abstracts/summaries only, NOT full reads)
+New closest work found (add to the literature matrix; verify by full read before citing):
+- **SFSC, "Switchable Representation Learning Framework with Self-Compatibility", CVPR 2023, arXiv 2206.08289.**
+  One training run yields sub-models of different capacity (switchable CNN widths) whose features are mutually
+  compatible; handles gradient conflict between sub-models. Evaluated on re-ID-style visual search. This is the
+  closest conceptual prior: "one network, several budgets, compatible embeddings". Difference: budget = channel
+  width of a CNN, not tokens; no token reduction, no cost-of-training accounting. **This lowers novelty of the
+  "self-compatible budgets" idea itself; ours is the token-budget instance of it for ViT re-ID.**
+- **Asymmetric image retrieval: CSD (CVPR 2022), D3still (CVPR 2024), arXiv 2403.00648 / 2403.00671.** Small query
+  network distilled to be compatible with a large gallery network. Two separate networks; landmark retrieval.
+- **DaRe, "Resource Aware Person Re-identification across Multiple Resolutions", CVPR 2018, arXiv 1805.08805.**
+  Budgeted/anytime re-ID with one model via early exits (depth), not tokens.
+- **FPC, "Dynamic Feature Pruning and Consolidation for Occluded Person Re-ID", AAAI 2024, arXiv 2211.14742.**
+  Token sparsification of the query, matched against holistic gallery features: a query/gallery asymmetry
+  precedent inside re-ID (occlusion-driven, not budget-driven).
+- **STM-ReID, "Lighter is Better ... Spatial-Aware Token Merging"** (OpenReview 8Bs3mz49Gp, ICLR 2026 submission,
+  withdrawn): training-free merging for ViT re-ID.
+- **MergeTok (arXiv 2605.30904):** samples the merge ratio at random during training for robustness to token
+  granularity (visual tokenizer, not retrieval). Relevant because our no-distillation control shows random-ratio
+  training is where most of the gain comes from.
+- **Haurum et al., "Which Tokens to Use?", ICCVW 2023, arXiv 2308.04657:** on classification, Top-K is a strong
+  baseline and EViT (Top-K + fused token) beats it. **"When Token Pruning is Worse than Random" (Wang et al.,
+  2026, VLMs):** attention-based pruning no better than random in deep layers. Context for cls_attn < random.
+- No paper found that trains one ViT for several *token* budgets with cross-budget-compatible *retrieval*
+  embeddings and evaluates asymmetric (full gallery, reduced query) re-ID. "Not found in ~20 searches" only.
