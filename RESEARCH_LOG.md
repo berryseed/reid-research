@@ -230,5 +230,60 @@ iteration counter (which determines the learning rate on the schedule) and all r
 (so batches and augmentations continue the same sequence). Resuming re-ran only epochs 95–120. Loss: under
 12 seconds of training. The queue script now also commits and pushes each run's metrics as soon as it finishes.
 
-### 2026-11-15, phase B (in progress)
-See the entries that follow.
+### 2026-11-15, phase B part 1: fixed-budget training control (E9, 3 seeds, `fix50_s0..2`)
+- **Question:** if the deployment budget is known in advance (say keep 0.5), is it not simpler and cheaper to
+  train a model only at that budget? A reviewer will ask this. It is also the test of H4 (does training with
+  fewer tokens cut training cost?).
+- **Setup:** same recipe as the baseline, but the single training pass uses merging at keep 0.5
+  (`--train-mode merge --train-keep 0.5`): 1.46 GFLOPs per image in training instead of 2.93. No second pass,
+  no distillation. Batch 64, 120 epochs, 24,240 iterations, same losses.
+- **Expectation:** best-in-class at keep 0.5 (it specialises there), weak at full tokens (never saw them),
+  and roughly half the training time.
+- **Result (mean ± std, 3 seeds):**
+
+  | | GPU-h | peak VRAM | full tokens | keep 0.5, full gal. | keep 0.5, red. gal. |
+  | --- | --- | --- | --- | --- | --- |
+  | Baseline | 0.22 | 1.81 GB | 84.45 ± 0.49 | 68.56 ± 1.14 | 59.60 ± 1.12 |
+  | Fixed-budget (keep 0.5) | 0.24 | 1.13 GB | 80.68 ± 0.45 | 79.24 ± 0.39 | 78.45 ± 0.42 |
+  | TBSD | 0.41 | 3.09 GB | 83.95 ± 0.13 | 81.98 ± 0.18 | 80.26 ± 0.13 |
+
+- **Two expectations failed, and both are informative.**
+  1. *The specialist is not the best at its own budget.* At keep 0.5 with both sides reduced, its home setting,
+     it reaches 78.45; TBSD reaches 80.26 (+1.8, about four standard deviations). So the full-token pass in TBSD
+     is not only there to keep full-token accuracy: learning from all 128 patches gives the shared weights
+     better features, and the reduced pass inherits them. This supports the method beyond "robustness".
+  2. *Training with half the tokens was not faster* (0.24 h vs 0.22 h). At batch 64 a ViT-S on this GPU is
+     bound by per-operation overhead and data loading, not arithmetic, and merging adds operations (the same
+     effect as the batch-1 latency result in E7). It did cut peak memory by 38% (1.13 vs 1.81 GB).
+     **H4 is not supported in wall-clock time at this batch size**; the memory saving is the only cost benefit.
+- **Where the specialist does win:** it is flat across budgets (80.68 → 79.24) and costs 0.24 GPU-h, 59% of
+  TBSD's. At equal training compute it is the cheapest route to a decent low-budget model. TBSD is better at
+  every budget but costs 1.7x as much to train. That trade-off must be stated in the paper.
+
+### 2026-11-15, phase B part 2: equal-GPU-hour baseline, 3 seeds (E3 completed, finished 18:23)
+Same as E3 with seeds 1 and 2 added, so the fairness control has 3 seeds like everything else. 216 epochs =
+43,632 iterations; 0.36 / 0.40 / 0.38 GPU-h. Expected: full tokens about 85, keep 0.5 about 69. Met.
+
+| keep | GFLOPs | Baseline 216 ep | TBSD | TBSD − baseline |
+| --- | --- | --- | --- | --- |
+| 1.0 | 2.93 | 85.11 ± 0.15 | 83.95 ± 0.13 | −1.16 |
+| 0.8 | 2.22 | 84.48 ± 0.15 | 83.89 ± 0.13 | −0.59 |
+| 0.7 | 1.92 | 83.42 ± 0.12 | 83.70 ± 0.12 | +0.28 |
+| 0.6 | 1.68 | 81.08 ± 0.16 | 83.29 ± 0.13 | +2.21 |
+| 0.5 | 1.46 | 69.76 ± 0.73 | 81.98 ± 0.18 | +12.22 |
+
+(mAP, full-token gallery. Reduced gallery at keep 0.5: 60.38 ± 0.94 vs 80.26 ± 0.13. q_cos 0.729 vs 0.944.)
+
+**Learned:** more epochs improve the model at the budget it was trained on and leave drift untouched (q_cos
+0.73 either way). There is a crossover near 1.9 GFLOPs: above it the long baseline wins by up to 1.2 mAP, below
+it TBSD wins by up to 12. The defensible claim is a trade, not dominance: at matched training compute TBSD
+pays ~1.2 mAP at full cost to stay within 2 mAP of its own full-token score down to half the compute.
+
+### 2026-11-15, phase C: low-data runs (E8 extended; started 18:27)
+- **Question (H3):** does TBSD regularise when labelled identities are scarce?
+- **Setup:** `--id-fraction` 0.10 / 0.25 / 0.50 → 75 / 188 / 376 identities with all their images (about 1,300 /
+  3,200 / 6,500 images; 20 / 49 / 101 iterations per epoch), 120 epochs, baseline and TBSD, seeds 0–2. The
+  subset is drawn with the run's seed, so the spread across seeds includes the choice of identities.
+  The classifier has as many outputs as identities in the subset; everything else is unchanged.
+- **Expectation:** steep fall in accuracy with fewer identities for both; TBSD slightly below the baseline at
+  full tokens (no regularisation benefit); low-budget advantage persists.
