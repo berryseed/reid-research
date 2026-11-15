@@ -54,3 +54,8 @@ done. train time 0.24 h, checkpoint: runs/fix50_s2\last.pth
 === sweep fix50_s2 Sun Nov 15 17:13:31 BST 2026
 pushed fix50_s2
 === train base_e216_s1 Sun Nov 15 17:16:56 BST 2026
+epoch 216/216 loss 1.026 id 1.025 tri 0.001 sd 0.000 | 24.1 min | mAP 85.0 R1 93.7
+done. train time 0.40 h, checkpoint: runs/base_e216_s1\last.pth
+=== sweep base_e216_s1 Sun Nov 15 17:47:45 BST 2026
+pushed base_e216_s1
+=== train base_e216_s2 Sun Nov 15 17:51:13 BST 2026
