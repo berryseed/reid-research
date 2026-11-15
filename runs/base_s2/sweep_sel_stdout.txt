@@ -1,0 +1,15 @@
+{'mode': 'none', 'keep': 1.0, 'final_tokens': 129, 'gflops': 2.93, 'img_s': 9022.4, 'sym_mAP': 84.75, 'sym_R1': 94.15, 'asym_mAP': 84.75, 'asym_R1': 94.15, 'q_cos': 1.0}
+{'mode': 'cls_attn', 'keep': 0.8, 'final_tokens': 68, 'gflops': 2.217, 'img_s': 12097.5, 'sym_mAP': 80.46, 'sym_R1': 92.34, 'asym_mAP': 82.07, 'asym_R1': 92.25, 'q_cos': 0.9367}
+{'mode': 'cls_attn', 'keep': 0.7, 'final_tokens': 46, 'gflops': 1.921, 'img_s': 13764.4, 'sym_mAP': 71.53, 'sym_R1': 88.51, 'asym_mAP': 76.17, 'asym_R1': 88.45, 'q_cos': 0.8496}
+{'mode': 'cls_attn', 'keep': 0.5, 'final_tokens': 17, 'gflops': 1.463, 'img_s': 17095.1, 'sym_mAP': 29.8, 'sym_R1': 57.45, 'asym_mAP': 41.62, 'asym_R1': 53.47, 'q_cos': 0.5372}
+{'mode': 'cls_attn_fuse', 'keep': 0.8, 'final_tokens': 70, 'gflops': 2.244, 'img_s': 11599.4, 'sym_mAP': 80.77, 'sym_R1': 92.31, 'asym_mAP': 82.3, 'asym_R1': 92.49, 'q_cos': 0.941}
+{'mode': 'cls_attn_fuse', 'keep': 0.7, 'final_tokens': 48, 'gflops': 1.948, 'img_s': 13237.2, 'sym_mAP': 72.54, 'sym_R1': 88.9, 'asym_mAP': 77.0, 'asym_R1': 89.07, 'q_cos': 0.858}
+{'mode': 'cls_attn_fuse', 'keep': 0.5, 'final_tokens': 19, 'gflops': 1.489, 'img_s': 16420.8, 'sym_mAP': 32.7, 'sym_R1': 60.66, 'asym_mAP': 44.32, 'asym_R1': 56.38, 'q_cos': 0.5592}
+{'mode': 'cls_attn_low', 'keep': 0.8, 'final_tokens': 68, 'gflops': 2.217, 'img_s': 12088.5, 'sym_mAP': 54.8, 'sym_R1': 78.74, 'asym_mAP': 52.57, 'asym_R1': 65.11, 'q_cos': 0.5079}
+{'mode': 'cls_attn_low', 'keep': 0.7, 'final_tokens': 46, 'gflops': 1.921, 'img_s': 13749.0, 'sym_mAP': 35.3, 'sym_R1': 60.04, 'asym_mAP': 31.06, 'asym_R1': 38.72, 'q_cos': 0.3801}
+{'mode': 'cls_attn_low', 'keep': 0.5, 'final_tokens': 17, 'gflops': 1.463, 'img_s': 17060.5, 'sym_mAP': 10.76, 'sym_R1': 25.5, 'asym_mAP': 6.28, 'asym_R1': 6.59, 'q_cos': 0.1755}
+{'mode': 'random', 'keep': 0.8, 'final_tokens': 68, 'gflops': 2.217, 'img_s': 12311.2, 'sym_mAP': 77.92, 'sym_R1': 90.86, 'asym_mAP': 81.78, 'asym_R1': 92.31, 'q_cos': 0.9244}
+{'mode': 'random', 'keep': 0.7, 'final_tokens': 46, 'gflops': 1.921, 'img_s': 13995.7, 'sym_mAP': 68.36, 'sym_R1': 86.22, 'asym_mAP': 78.28, 'asym_R1': 90.05, 'q_cos': 0.8516}
+{'mode': 'random', 'keep': 0.5, 'final_tokens': 17, 'gflops': 1.463, 'img_s': 17406.4, 'sym_mAP': 26.66, 'sym_R1': 53.77, 'asym_mAP': 56.23, 'asym_R1': 69.39, 'q_cos': 0.5889}
+saved runs/base_s2/sweep_sel.csv
+saved runs/base_s2/sweep_sel.png

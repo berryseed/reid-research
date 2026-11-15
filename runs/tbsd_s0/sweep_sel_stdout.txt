@@ -1,0 +1,15 @@
+{'mode': 'none', 'keep': 1.0, 'final_tokens': 129, 'gflops': 2.93, 'img_s': 9022.1, 'sym_mAP': 83.8, 'sym_R1': 93.91, 'asym_mAP': 83.8, 'asym_R1': 93.91, 'q_cos': 1.0}
+{'mode': 'cls_attn', 'keep': 0.8, 'final_tokens': 68, 'gflops': 2.217, 'img_s': 12096.7, 'sym_mAP': 78.46, 'sym_R1': 91.81, 'asym_mAP': 80.88, 'asym_R1': 92.25, 'q_cos': 0.9317}
+{'mode': 'cls_attn', 'keep': 0.7, 'final_tokens': 46, 'gflops': 1.921, 'img_s': 13762.6, 'sym_mAP': 68.71, 'sym_R1': 86.85, 'asym_mAP': 74.65, 'asym_R1': 88.69, 'q_cos': 0.8464}
+{'mode': 'cls_attn', 'keep': 0.5, 'final_tokens': 17, 'gflops': 1.463, 'img_s': 17097.4, 'sym_mAP': 32.99, 'sym_R1': 59.83, 'asym_mAP': 44.98, 'asym_R1': 58.02, 'q_cos': 0.5871}
+{'mode': 'cls_attn_fuse', 'keep': 0.8, 'final_tokens': 70, 'gflops': 2.244, 'img_s': 11602.0, 'sym_mAP': 79.23, 'sym_R1': 92.4, 'asym_mAP': 81.29, 'asym_R1': 92.46, 'q_cos': 0.9388}
+{'mode': 'cls_attn_fuse', 'keep': 0.7, 'final_tokens': 48, 'gflops': 1.948, 'img_s': 13234.4, 'sym_mAP': 70.76, 'sym_R1': 88.09, 'asym_mAP': 76.02, 'asym_R1': 89.58, 'q_cos': 0.8603}
+{'mode': 'cls_attn_fuse', 'keep': 0.5, 'final_tokens': 19, 'gflops': 1.489, 'img_s': 16428.7, 'sym_mAP': 37.18, 'sym_R1': 64.43, 'asym_mAP': 49.45, 'asym_R1': 63.48, 'q_cos': 0.6176}
+{'mode': 'cls_attn_low', 'keep': 0.8, 'final_tokens': 68, 'gflops': 2.217, 'img_s': 12086.6, 'sym_mAP': 68.72, 'sym_R1': 86.07, 'asym_mAP': 72.99, 'asym_R1': 85.72, 'q_cos': 0.8091}
+{'mode': 'cls_attn_low', 'keep': 0.7, 'final_tokens': 46, 'gflops': 1.921, 'img_s': 13695.1, 'sym_mAP': 55.12, 'sym_R1': 78.77, 'asym_mAP': 61.48, 'asym_R1': 75.18, 'q_cos': 0.6921}
+{'mode': 'cls_attn_low', 'keep': 0.5, 'final_tokens': 17, 'gflops': 1.463, 'img_s': 17066.8, 'sym_mAP': 24.69, 'sym_R1': 48.28, 'asym_mAP': 27.41, 'asym_R1': 34.44, 'q_cos': 0.4311}
+{'mode': 'random', 'keep': 0.8, 'final_tokens': 68, 'gflops': 2.217, 'img_s': 12315.1, 'sym_mAP': 80.76, 'sym_R1': 92.4, 'asym_mAP': 82.35, 'asym_R1': 93.17, 'q_cos': 0.9648}
+{'mode': 'random', 'keep': 0.7, 'final_tokens': 46, 'gflops': 1.921, 'img_s': 14001.0, 'sym_mAP': 77.61, 'sym_R1': 91.09, 'asym_mAP': 80.96, 'asym_R1': 92.01, 'q_cos': 0.9317}
+{'mode': 'random', 'keep': 0.5, 'final_tokens': 17, 'gflops': 1.463, 'img_s': 17403.7, 'sym_mAP': 59.14, 'sym_R1': 80.97, 'asym_mAP': 72.41, 'asym_R1': 85.51, 'q_cos': 0.7911}
+saved runs/tbsd_s0/sweep_sel.csv
+saved runs/tbsd_s0/sweep_sel.png

@@ -1,0 +1,17 @@
+##### phase S Sun Nov 15 10:29:26 BST 2026
+=== sweep_sel base_s0 Sun Nov 15 10:29:26 BST 2026
+=== sweep_sel base_s1 Sun Nov 15 10:36:31 BST 2026
+=== sweep_sel base_s2 Sun Nov 15 10:43:22 BST 2026
+=== sweep_sel tbsd_s0 Sun Nov 15 10:50:14 BST 2026
+=== sweep_sel tbsd_s1 Sun Nov 15 10:57:06 BST 2026
+=== sweep_sel tbsd_s2 Sun Nov 15 11:03:56 BST 2026
+##### phase A Sun Nov 15 11:11:20 BST 2026
+=== train tbsd_nosd_s1 Sun Nov 15 11:11:20 BST 2026
+epoch 120/120 loss 2.073 id 1.033 tri 0.001 sd 0.026 | 23.2 min | mAP 83.9 R1 94.2
+done. train time 0.39 h, checkpoint: runs/tbsd_nosd_s1\last.pth
+=== sweep tbsd_nosd_s1 Sun Nov 15 11:38:16 BST 2026
+=== train tbsd_nosd_s2 Sun Nov 15 11:41:37 BST 2026
+epoch 120/120 loss 2.069 id 1.032 tri 0.001 sd 0.024 | 23.9 min | mAP 83.6 R1 93.5
+done. train time 0.40 h, checkpoint: runs/tbsd_nosd_s2\last.pth
+=== sweep tbsd_nosd_s2 Sun Nov 15 12:09:05 BST 2026
+=== train tbsd_bnns_s0 Sun Nov 15 12:12:26 BST 2026

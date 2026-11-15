@@ -29,6 +29,11 @@ sweep() {  # name, csv basename, extra evaluate args...
   echo "=== $out $name $(date)"
   $PY evaluate.py --data "$DATA" --ckpt "runs/$name/last.pth" --out "runs/$name/$out.csv" "$@" \
     > "runs/$name/${out}_stdout.txt" 2>&1 || { echo "FAILED $out $name"; tail -5 "runs/$name/${out}_stdout.txt"; return 1; }
+  save "$name"
+}
+save() {  # commit + push the metrics of a finished run so a power cut loses at most the run in progress
+  git add "runs/$1" runs/queue_iter2.txt runs/latency*.csv runs/latency*_stdout.txt 2>/dev/null
+  git commit -q -m "Results: $1 (auto-commit from run_iter2.sh after the run and its sweep finished)"     && git push -q && echo "pushed $1" || echo "WARN: commit/push of $1 did not complete (will be picked up later)"
 }
 
 TBSD="--sd-mode merge --sd-keep random"
