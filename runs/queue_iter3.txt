@@ -13,3 +13,9 @@ pushed tbsd_nosd_s1
 pushed tbsd_nosd_s2
 ##### phase E Sun Nov 15 22:12:46 BST 2026
 === train sp_lowres_s0 Sun Nov 15 22:12:46 BST 2026
+epoch 120/120 loss 2.103 id 1.033 tri 0.001 sd 0.030 | 21.8 min | mAP 82.8 R1 93.0
+done. train time 0.36 h, checkpoint: runs/sp_lowres_s0\last.pth
+=== mech sp_lowres_s0 Sun Nov 15 22:38:18 BST 2026
+=== sweep sp_lowres_s0 Sun Nov 15 22:39:58 BST 2026
+pushed sp_lowres_s0
+=== train sp_merge_r_s0 Sun Nov 15 22:43:18 BST 2026
