@@ -64,3 +64,9 @@ done. train time 0.38 h, checkpoint: runs/base_e216_s2\last.pth
 === sweep base_e216_s2 Sun Nov 15 18:20:36 BST 2026
 pushed base_e216_s2
 === all done Sun Nov 15 18:23:58 BST 2026
+##### phase C Sun Nov 15 18:24:45 BST 2026
+skip train base_id25_s0
+skip sweep base_id25_s0
+skip train tbsd_id25_s0
+skip sweep tbsd_id25_s0
+=== train base_id25_s1 Sun Nov 15 18:24:46 BST 2026
