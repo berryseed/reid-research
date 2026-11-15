@@ -42,3 +42,8 @@ pushed tbsd_bnns_s2
 epoch 120/120 loss 1.048 id 1.046 tri 0.002 sd 0.000 | 14.6 min | mAP 80.4 R1 92.0
 done. train time 0.24 h, checkpoint: runs/fix50_s0\last.pth
 === sweep fix50_s0 Sun Nov 15 16:30:21 BST 2026
+pushed fix50_s0
+=== train fix50_s1 Sun Nov 15 16:33:41 BST 2026
+epoch 120/120 loss 1.052 id 1.050 tri 0.002 sd 0.000 | 14.6 min | mAP 81.2 R1 92.5
+done. train time 0.24 h, checkpoint: runs/fix50_s1\last.pth
+=== sweep fix50_s1 Sun Nov 15 16:51:56 BST 2026
