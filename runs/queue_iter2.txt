@@ -143,3 +143,8 @@ pushed tbsd_id10_s1
 epoch 120/120 loss 0.784 id 0.782 tri 0.002 sd 0.000 | 1.6 min | mAP 54.8 R1 78.8
 done. train time 0.03 h, checkpoint: runs/base_id10_s2\last.pth
 === sweep base_id10_s2 Sun Nov 15 21:34:18 BST 2026
+pushed base_id10_s2
+=== train tbsd_id10_s2 Sun Nov 15 21:37:54 BST 2026
+epoch 120/120 loss 1.575 id 0.779 tri 0.001 sd 0.013 | 2.5 min | mAP 53.7 R1 76.3
+done. train time 0.04 h, checkpoint: runs/tbsd_id10_s2\last.pth
+=== sweep tbsd_id10_s2 Sun Nov 15 21:44:14 BST 2026
