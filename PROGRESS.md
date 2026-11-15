@@ -4,15 +4,41 @@ Current state at a glance. Detailed chronological record with exact commands and
 `PROGRESS_LOG.md`. Background, decisions and literature: `PROJECT_CONTEXT.md`.
 All numbers are Market-1501, ViT-S/16 (ImageNet-21k->1k augreg weights), 256x128, 120 epochs, unless stated.
 
-_Last updated: 2026-11-15 ~00:45 local. Project PAUSED by the user at this point._
+_Last updated: 2026-11-15 ~15:15 local (session 2, after power-outage recovery)._
 
-## Current status: paused, nothing running, nothing to resume
-- All queued training is **complete** (queue `run_iter1b.sh` finished 00:38). No run was interrupted, so there
-  is no partial run and no resumable `ckpt.pth`; every run has its final `runs/<name>/last.pth`.
-- Final checkpoints (all verified to load and produce finite embeddings on 2026-11-15; ~88 MB each, **not in Git**):
-  `runs/{base_s0,base_s1,base_s2,tbsd_s0,tbsd_s1,tbsd_s2,base_id25_s0,tbsd_id25_s0,base_e216_s0,tbsd_nosd_s0}/last.pth`
-  on the local disk of the training PC (`C:/Users/user/reid-research`). Dataset: `C:/Users/user/data/Market-1501-v15.09.15`.
-- Metrics, logs, configs (`log.json` holds all args), sweep CSVs and plots for every run are in Git.
+## Current status: iteration 2 running (queue `run_iter2.sh`, log `runs/queue_iter2.txt`)
+- **Power outage 2026-11-15 ~12:33** during `tbsd_bnns_s0` (epoch 95 of 120). Recovery at 14:59:
+  - Validated: every `last.pth` (16 files) loads with finite weights; every `log.json` parses; every sweep CSV is
+    complete; every PNG verifies; `git fsck` clean; local `main` equal to `origin/main`; no `.tmp` leftovers.
+  - Latest valid checkpoint: `runs/tbsd_bnns_s0/ckpt.pth`, epoch 94, step 18988, 0.314 h trained, with model,
+    optimizer (152 momentum buffers), AMP scaler, LR-schedule step and all RNG states. Resumed from it at 15:02
+    (`resumed from ... epoch 94 done`), not restarted.
+  - **Lost to the outage:** the unfinished part of epoch 95 of that run (under 12 s of training) and about 2.5 h of
+    idle wall-clock. No completed result was lost. Finished-but-uncommitted results (selection sweeps, latency,
+    `tbsd_nosd_s1/s2`) were intact on disk and are now pushed.
+  - Resume on GPU is statistically equivalent, not bit-exact (see Known issues); `tbsd_bnns_s0` is a resumed run.
+- Protection added: `run_iter2.sh` commits and pushes each run's metrics as soon as its sweep finishes;
+  `train.py` already writes an atomic resumable `ckpt.pth` every epoch (about 12 s).
+- Phase status: S (selection diagnostics, latency) done; A (no-distillation seeds done; BNNeck ablation running);
+  B (fixed-budget control, equal-GPU-h seeds), C (low data 10/25/50%), D (ViT-B) pending.
+- If interrupted again: `bash run_iter2.sh /c/Users/user/data/Market-1501-v15.09.15 A B C D >> runs/queue_iter2.txt 2>&1`
+  (finished runs are skipped, the interrupted one resumes from its `ckpt.pth`).
+- Final checkpoints (not in Git) are `runs/<name>/last.pth` on the training PC. Dataset: `C:/Users/user/data/Market-1501-v15.09.15`.
+
+### New results so far in iteration 2 (verified runs; full tables in PROGRESS_LOG.md)
+- **Distillation term, 3 seeds:** multi-budget training without distillation 80.56 ± 0.06 vs TBSD 81.98 ± 0.18 mAP at
+  keep 0.5 (full-token gallery); 78.31 ± 0.12 vs 80.26 ± 0.13 with a reduced gallery; q_cos 0.902 vs 0.944.
+  The distillation term adds about +1.4 / +1.9 mAP at the lowest budget, outside seed noise. At full tokens the
+  difference (+0.24) is not outside noise. Multi-budget training itself still accounts for most of the gain
+  (+12.0 of the +13.4 over the baseline).
+- **Selection diagnostics, 3 seeds, baseline checkpoints, keep 0.7, full-token gallery mAP:** random 77.99 ± 0.61,
+  class-attention 72.66 ± 3.29, class-attention + EViT fused token 73.82 ± 2.99, least-attended tokens 37.62 ± 6.26.
+  Class attention does carry identity information (inverting it is far worse), the fused token helps by about 1 mAP,
+  and class-attention selection is still below random for a full-token gallery, with much larger seed variance.
+  With query and gallery both reduced, class attention and random are within noise at keep 0.8 and 0.7.
+- **Latency (forward only, random input, ViT-S, `runs/latency.csv`):** merge keep 0.5 vs full tokens:
+  GPU batch 256 0.062 vs 0.111 ms/img (1.78x); CPU batch 1 11.9 vs 16.3 ms (1.37x); CPU batch 8 6.2 vs 11.1 ms (1.78x);
+  **GPU batch 1 is slower with merging (8.5 vs 6.0 ms)**: the matching step dominates at that size.
 
 ## How to resume the project
 1. Open the folder in Claude Code; read `CLAUDE.md`, then this file, then the end of `PROGRESS_LOG.md`.

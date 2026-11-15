@@ -256,3 +256,61 @@ New closest work found (add to the literature matrix; verify by full read before
   2026, VLMs):** attention-based pruning no better than random in deep layers. Context for cls_attn < random.
 - No paper found that trains one ViT for several *token* budgets with cross-budget-compatible *retrieval*
   embeddings and evaluates asymmetric (full gallery, reduced query) re-ID. "Not found in ~20 searches" only.
+
+### Power outage and recovery (2026-11-15; outage ~12:33, recovery 14:59–15:15)
+- Before the outage (from `runs/queue_iter2.txt`): phase S finished 11:11 (6 selection sweeps, `runs/latency.csv`);
+  `tbsd_nosd_s1` (83.9/94.2, 0.39 h) and `tbsd_nosd_s2` (83.6/93.5, 0.40 h) trained and swept;
+  `tbsd_bnns_s0` started 12:12, last stdout line "epoch 94/120 ... 18.8 min", `ckpt.pth` written 12:33.
+- Checks run: `git fsck` clean, `main` == `origin/main` (554cc1f); no python processes; GPU idle; no `*.tmp`;
+  `torch.load` of all 16 `last.pth` (finite weights) and of `ckpt.pth` (epoch 94, step 18988, 94 log epochs,
+  evals 80.1/81.5/82.7/83.4 at 20/40/60/80); all `log.json` parse; all CSVs have complete rows; all PNGs verify.
+- Nothing corrupted. Lost: partial epoch 95 of `tbsd_bnns_s0` only.
+- Committed the finished results, added `save()` to `run_iter2.sh` (commit + push after every finished run),
+  resumed with `bash run_iter2.sh /c/Users/user/data/Market-1501-v15.09.15 A >> runs/queue_iter2.txt` at 15:02;
+  stdout confirms `resumed from runs/tbsd_bnns_s0\ckpt.pth: epoch 94 done, step 18988, 0.31 h trained`.
+
+### Phase S results (eval only, 3 seeds each, mean ± std mAP; `runs/*/sweep_sel.csv`)
+Keeps 0.8 / 0.7 / 0.5 (GFLOPs 2.22 / 1.92 / 1.46; fused variant 2.24 / 1.95 / 1.49).
+
+| checkpoints | rule | reduced gallery | full-token gallery |
+| --- | --- | --- | --- |
+| baseline | random | 77.40±0.84 / 68.13±0.53 / 27.19±0.47 | 81.40±0.61 / 77.99±0.61 / 56.37±0.68 |
+| baseline | cls_attn | 78.31±2.15 / 66.24±5.11 / 23.62±5.70 | 80.53±1.56 / 72.66±3.29 / 36.32±5.17 |
+| baseline | cls_attn_fuse | 79.04±1.77 / 68.74±3.84 / 28.05±5.70 | 80.93±1.43 / 73.82±2.99 / 39.19±5.07 |
+| baseline | cls_attn_low | 57.22±2.25 / 39.11±3.84 / 12.75±1.99 | 57.73±4.80 / 37.62±6.26 / 8.50±2.28 |
+| TBSD | random | 81.01±0.22 / 77.78±0.22 / 58.98±0.55 | 82.60±0.22 / 81.11±0.15 / 72.40±0.04 |
+| TBSD | cls_attn | 78.09±0.67 / 67.74±2.20 / 30.04±4.73 | 80.34±0.59 / 73.33±1.99 / 41.41±6.27 |
+| TBSD | cls_attn_fuse | 78.89±0.49 / 69.84±1.78 / 33.90±4.72 | 80.87±0.42 / 74.82±1.65 / 45.22±6.17 |
+| TBSD | cls_attn_low | 68.92±1.11 / 55.60±1.90 / 25.56±3.14 | 73.47±1.06 / 62.06±1.71 / 28.32±2.82 |
+
+Reading: (1) "cls_attn < random" holds over 3 seeds for a full-token gallery (keep 0.7: -5.3, keep 0.5: -20), but
+with both sides reduced the two are within noise at 0.8/0.7; (2) the missing fused token explains only about 1 mAP;
+(3) inverse selection is far worse, so class attention is informative and this is not an inverted-attention bug;
+(4) class-attention selection has 3-8x the seed variance of random; (5) TBSD trained with merging transfers to
+random selection (+16 at keep 0.5, full-token gallery) but barely to class-attention selection.
+Still our own implementation, not official EViT code. Why attention-selected tokens shift the embedding more than
+a uniform sample is not explained.
+
+### Latency (`runs/latency.csv`; forward only, random input, ViT-S 256x128; GPU AMP, CPU fp32 8 threads; idle machine)
+| rule | keep | GFLOPs | GPU b1 ms | GPU b256 ms/img | CPU b1 ms | CPU b8 ms/img |
+| --- | --- | --- | --- | --- | --- | --- |
+| none | 1.0 | 2.93 | 6.00 | 0.111 | 16.3 | 11.1 |
+| merge | 0.8 | 2.22 | 8.47 | 0.089 | 15.1 | 7.1 |
+| merge | 0.7 | 1.92 | 8.47 | 0.077 | 13.6 | 7.4 |
+| merge | 0.6 | 1.68 | 8.51 | 0.069 | 12.7 | 5.9 |
+| merge | 0.5 | 1.46 | 8.55 | 0.062 | 11.9 | 6.2 |
+| random | 0.5 | 1.46 | 6.59 | 0.058 | 11.0 | 5.5 |
+
+Reading: 2.0x fewer GFLOPs gives 1.78x at GPU batch 256 and CPU batch 8, 1.37x at CPU batch 1, and a slowdown at
+GPU batch 1 (merge 8.5 ms vs 6.0 ms). Token reduction pays off for throughput and on CPU, not for single-image GPU
+inference. CPU batch-8 numbers come from 10 iterations and are not monotonic (noise about 10%).
+
+### No-distillation control, 3 seeds (`tbsd_nosd_s0..2`), merge, mAP full-token gallery / reduced gallery
+| | GPU-h | keep 1.0 | 0.8 | 0.7 | 0.6 | 0.5 | q_cos@0.5 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Multi-budget, no distillation | 0.40 | 83.71±0.20 | 83.53±0.19 / 83.37±0.18 | 83.19±0.16 / 82.80±0.14 | 82.51±0.11 / 81.63±0.10 | 80.56±0.06 / 78.31±0.12 | 0.902 |
+| TBSD | 0.41 | 83.95±0.13 | 83.89±0.13 / 83.84±0.15 | 83.70±0.12 / 83.48±0.12 | 83.29±0.13 / 82.71±0.06 | 81.98±0.18 / 80.26±0.13 | 0.944 |
+
+Conclusion: the cosine distillation term is a real but modest contribution (+1.42 / +1.95 mAP at keep 0.5, well
+outside seed spread; +0.24 at full tokens, not significant) at no measurable extra training cost. Most of the budget
+robustness (+12.0 of +13.4 over the baseline at keep 0.5) comes from multi-budget training.
