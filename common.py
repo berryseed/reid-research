@@ -25,10 +25,13 @@ from torch.utils.data import Dataset, Sampler
 
 import timm
 import torchvision.transforms as T
+from timm.layers import resample_abs_pos_embed
 
 # cls_attn_fuse: EViT with its fused "inattentive" token (dropped tokens averaged, weighted by class attention)
 # cls_attn_low:  diagnostic only, keeps the patch tokens the class token attends to LEAST
-MODES = ("none", "merge", "cls_attn", "random", "cls_attn_fuse", "cls_attn_low")
+MODES = ("none", "merge", "cls_attn", "random", "cls_attn_fuse", "cls_attn_low",
+         "cls_attn_evit",   # official EViT fused token: attention-weighted SUM of the dropped tokens
+         "merge_r")         # official ToMe schedule: merge model.tome_r tokens in EVERY block (keep is ignored)
 
 
 # --------------------------------------------------------------------------- data
@@ -225,13 +228,16 @@ def select_tokens(x, score, n_keep, n_prefix=1):
     return torch.cat([x[:, :n_prefix], patches], dim=1)
 
 
-def select_tokens_fuse(x, score, n_keep, n_prefix=1):
-    """EViT: keep the top n_keep patch tokens and append one token that is the score-weighted
-    average of the dropped ones (n_keep + 1 patch tokens come out)."""
+def select_tokens_fuse(x, score, n_keep, n_prefix=1, normalize=True):
+    """EViT: keep the top n_keep patch tokens and append one token fused from the dropped ones
+    (n_keep + 1 patch tokens come out). normalize=True: score-weighted AVERAGE (our variant);
+    normalize=False: score-weighted SUM, as in the official EViT code."""
     kept = select_tokens(x, score, n_keep, n_prefix)
     idx = score.topk(n_keep, dim=1).indices
     w = score.scatter(1, idx, 0.0).clamp(min=0)            # weights of the dropped tokens only
-    fused = (x[:, n_prefix:].float() * w[..., None]).sum(1, keepdim=True) / w.sum(1).clamp(min=1e-6)[:, None, None]
+    fused = (x[:, n_prefix:].float() * w[..., None]).sum(1, keepdim=True)
+    if normalize:
+        fused = fused / w.sum(1).clamp(min=1e-6)[:, None, None]
     return torch.cat([kept, fused.to(x.dtype)], dim=1)
 
 
@@ -249,21 +255,35 @@ class ReIDViT(nn.Module):
         self.classifier = nn.Linear(self.dim, num_classes, bias=False)
         nn.init.normal_(self.classifier.weight, std=0.001)
         self.fast_attn = True  # fused SDPA in reduced/merged blocks; False = explicit maps (reference path)
+        self.tome_r = 0        # tokens merged per block in mode "merge_r" (official ToMe schedule)
         self.last_counts = []  # [(tokens in attention, tokens in MLP)] per block, from the last forward
 
-    def backbone(self, x, mode="none", keep=1.0):
+    def backbone(self, x, mode="none", keep=1.0, hw=None):
+        """hw: optional (height, width) to which the input is resized first (fewer patch tokens);
+        the position embedding is bicubically resampled to the new grid. None = unchanged path."""
         assert mode in MODES, mode
         v = self.vit
-        x = v.patch_embed(x)
-        x = v._pos_embed(x)
+        npre = v.num_prefix_tokens
+        if hw is not None and tuple(hw) != tuple(x.shape[-2:]):
+            x = F.interpolate(x, size=tuple(hw), mode="bicubic", antialias=True, align_corners=False)
+            x = v.patch_embed.proj(x)
+            grid = x.shape[-2:]
+            x = v.patch_embed.norm(x.flatten(2).transpose(1, 2))
+            pos = resample_abs_pos_embed(v.pos_embed, tuple(grid), old_size=v.patch_embed.grid_size,
+                                         num_prefix_tokens=npre)
+            x = torch.cat([v.cls_token.expand(x.shape[0], -1, -1), x], dim=1) + pos.to(x.dtype)
+            x = v.pos_drop(x)
+        else:
+            x = v.patch_embed(x)
+            x = v._pos_embed(x)
         x = v.patch_drop(x)
         x = v.norm_pre(x)
-        npre = v.num_prefix_tokens
-        reduce = mode != "none" and keep < 1.0
+        every = mode == "merge_r" and self.tome_r > 0
+        reduce = (mode != "none" and keep < 1.0 and mode != "merge_r") or every
         size, counts = None, []
         for i, blk in enumerate(v.blocks):
             n_in = x.shape[1]
-            if reduce and i in self.reduce_layers:
+            if reduce and (every or i in self.reduce_layers):
                 if self.fast_attn:
                     y, cls_row, key = attention_fast(blk.attn, blk.norm1(x), size,
                                                      need_cls=mode.startswith("cls_attn"))
@@ -273,8 +293,12 @@ class ReIDViT(nn.Module):
                 x = x + blk.drop_path1(blk.ls1(y))
                 n_patch = x.shape[1] - npre
                 n_keep = max(1, math.ceil(n_patch * keep))
-                if mode == "merge":
+                if every:  # ToMe: constant r per block, at most half of the tokens
+                    n_keep = n_patch - min(self.tome_r, n_patch // 2)
+                if mode in ("merge", "merge_r"):
                     x, size = bipartite_merge(x, size, key, n_patch - n_keep, npre)
+                elif mode == "cls_attn_evit":
+                    x = select_tokens_fuse(x, cls_row[:, :, npre:].mean(1).float(), n_keep, npre, normalize=False)
                 elif mode == "cls_attn":
                     x = select_tokens(x, cls_row[:, :, npre:].mean(1).float(), n_keep, npre)
                 elif mode == "cls_attn_low":
@@ -295,8 +319,8 @@ class ReIDViT(nn.Module):
         self.last_counts = counts
         return v.norm(x)[:, 0]
 
-    def forward(self, x, mode="none", keep=1.0):
-        feat = self.backbone(x, mode, keep)   # used by the triplet loss
+    def forward(self, x, mode="none", keep=1.0, hw=None):
+        feat = self.backbone(x, mode, keep, hw)   # used by the triplet loss
         bn = self.bnneck(feat)                # used for retrieval and distillation
         logits = self.classifier(bn) if self.training else None
         return feat, bn, logits

@@ -27,6 +27,8 @@ from common import (MODES, ImageSet, PKSampler, ReIDViT, batch_hard_triplet, bui
                     evaluate_rank, extract_features, load_market, set_seed, vit_gflops)
 
 SD_KEEPS = (0.5, 0.6, 0.7, 0.8, 0.9)
+SD_RES = ((224, 112), (192, 96), (160, 80), (128, 64))  # --sd-mode lowres: 98 / 72 / 50 / 32 patch tokens
+SD_RS = (3, 5, 7, 9, 11)                                 # --sd-mode merge_r: tokens merged per block (ToMe)
 
 
 def get_args():
@@ -48,7 +50,9 @@ def get_args():
     p.add_argument("--id-fraction", type=float, default=1.0, help="fraction of training identities to use")
     p.add_argument("--train-mode", choices=MODES, default="none", help="token reduction in the primary pass")
     p.add_argument("--train-keep", type=float, default=1.0)
-    p.add_argument("--sd-mode", choices=MODES, default="none", help="token reduction in the distilled pass")
+    p.add_argument("--sd-mode", choices=MODES + ("lowres", "mixed"), default="none",
+                   help="cheap second pass: a token-reduction mode; 'merge_r' = gradual ToMe with random r; "
+                        "'lowres' = full tokens of a randomly downsized image; 'mixed' = lowres or merge_r per step")
     p.add_argument("--sd-keep", default="random", help="keep ratio per reduction layer, or 'random'")
     p.add_argument("--sd-weight", type=float, default=1.0)
     p.add_argument("--sd-bn", choices=("shared", "nostat"), default="shared",
@@ -156,10 +160,17 @@ def main():
                 l_sd = torch.zeros((), device=device)
                 if use_sd:
                     keep = random.choice(SD_KEEPS) if args.sd_keep == "random" else float(args.sd_keep)
+                    sd_mode, sd_hw = args.sd_mode, None
+                    if sd_mode == "mixed":
+                        sd_mode = random.choice(("lowres", "merge_r"))
+                    if sd_mode == "lowres":      # same network, smaller image, all of its tokens
+                        sd_mode, keep, sd_hw = "none", 1.0, random.choice(SD_RES)
+                    elif sd_mode == "merge_r":   # official ToMe schedule, r tokens merged in every block
+                        model.tome_r, keep = random.choice(SD_RS), 1.0
                     bn_mom = model.bnneck.momentum
                     if args.sd_bn == "nostat":
                         model.bnneck.momentum = 0.0  # running stats unchanged by this pass
-                    feat_s, bn_s, logits_s = model(imgs, args.sd_mode, keep)
+                    feat_s, bn_s, logits_s = model(imgs, sd_mode, keep, sd_hw)
                     model.bnneck.momentum = bn_mom
                     l_id_s = F.cross_entropy(logits_s.float(), labels, label_smoothing=args.label_smooth)
                     l_tri_s = batch_hard_triplet(feat_s, labels, args.margin)
