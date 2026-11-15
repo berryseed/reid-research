@@ -287,3 +287,106 @@ pays ~1.2 mAP at full cost to stay within 2 mAP of its own full-token score down
   The classifier has as many outputs as identities in the subset; everything else is unchanged.
 - **Expectation:** steep fall in accuracy with fewer identities for both; TBSD slightly below the baseline at
   full tokens (no regularisation benefit); low-budget advantage persists.
+
+
+---
+
+# Part 4. Direction review, literature pass and mechanism (2026-11-15 evening)
+
+## 4.1 What changed in how we work
+The user reviewed the project and set the priorities: the goal is an evidence-supported gap and our own
+justified method, not a trained model; TBSD is an exploratory probe; literature must be read in full, with
+verified metadata; the direction should follow the evidence. Everything below follows from that.
+
+## 4.2 Low-data result (E10: does TBSD regularise when identities are scarce?)
+- **Expectation written before the runs:** TBSD slightly below the baseline at full tokens; low-budget
+  advantage persists.
+- **Result (3 seeds):** full-token mAP baseline / TBSD = 55.88 / 53.72 at 10% of identities, 71.06 / 70.11 at
+  25%, 78.66 / 77.76 at 50%. At keep 0.5: 36.96 / 49.35, 51.39 / 66.87, 59.94 / 75.30.
+- **Reading:** expectation met. H3 is not supported: forcing reduced-token views to agree with full-token
+  views does not act as useful regularisation. Why it might have: the reduced view is a kind of augmentation.
+  Why it does not: the model already sees strong augmentation (random erasing, crops), and half of the
+  gradient budget now serves a second objective.
+
+## 4.3 What the full reads established (details and citations: LITERATURE_MATRIX.md)
+Concepts first.
+- **Compatible representation learning:** two encoders are *compatible* when a feature from one can be compared
+  directly with a feature from the other. BCT (CVPR 2020) achieves it by applying the old model's classifier to
+  the new model's features: both are then pulled towards the same class prototypes.
+- **Asymmetric retrieval:** a cheap encoder for queries, an expensive one for the gallery (indexed once).
+  The standard recipe (AML, CSD, D3still) is distillation from a frozen gallery model.
+- **Switchable / nested models:** one set of weights, several capacities (SFSC: channel width; MatMamba: width).
+
+What this means for us:
+1. SFSC already does "one training run, several budgets, mutually compatible re-ID embeddings" on Market-1501
+   and MSMT17, with CNN width as the knob. Its own *baselines* (BCT-S, Asymmetric-S) are what our multi-budget
+   control and TBSD amount to. SFSC's contribution is resolving gradient conflict between sub-models.
+2. D3still's feature term `L_f = sqrt(sum_i (cos(q_i, g_i) - 1)^2)` is our alignment loss. It is evaluated on
+   MSMT17. Our loss is not new.
+3. SUReID (token pruning + distillation for re-ID) uses a separate frozen teacher, one keep ratio per model, and
+   in the text read never compares a pruned query against an unpruned gallery.
+4. Not found anywhere in the texts read: token count of one ViT as the cheap-query knob.
+5. D3still and Suma-Tolias use *low-resolution queries*. For a ViT, fewer pixels means fewer tokens. That is a
+   baseline we had never run.
+
+**Why the multi-budget control gives most of TBSD's gain (hypothesis consistent with the literature):** the
+full and the reduced pass share one classifier. Each identity has one weight vector; both passes are trained to
+align with it. That is the BCT mechanism. The cosine term then tightens per-image agreement (+1.4 mAP).
+Not yet tested directly; the test is a control with separate classifiers per pass.
+
+## 4.4 Validating our token-reduction code (E11)
+- **Why:** findings measured through our own ToMe/EViT re-implementations are only as good as those
+  implementations.
+- **How:** read the official source; could not execute it (running downloaded code was blocked), so
+  `check_reduction.py` compares against a transcription of the official functions.
+- **Result:** merge output identical (max difference 0 over 80 random cases, same partition); top-k selection
+  identical; fused token same direction but different length (official: attention-weighted sum; ours: average).
+- **Differences that matter:** (1) official ToMe merges a constant `r` tokens in every block; ours merges a
+  large fraction at blocks 4, 7, 10. At keep 0.5 our first step merges 64 of 128 tokens, the hard maximum of
+  bipartite matching, so every token in one half is merged whether or not it has a similar partner.
+  (2) official ToMe includes the class token in the alternating split (parity swap; immaterial).
+
+## 4.5 Mechanism diagnostics (E12) — the experiment that changed the picture
+**Question.** Why does the embedding move when tokens are reduced, and how much of that is our own doing?
+
+**Measurements** (all with a full-token gallery; `runs/mechanism.csv`):
+- `q_cos`: cosine between reduced and full query embeddings.
+- `offset_frac = ||E[d]||^2 / E[||d||^2]`, `d = f_red - f_full`. If drift were one shared translation of the
+  whole embedding cloud this would be 1 and a single vector would undo it.
+- Three training-free corrections fitted on unlabeled training images: mean shift, per-dimension affine
+  (the idea behind per-sub-model BatchNorm), and a ridge-regression linear map
+  `W = (X^T X + λI)^{-1} X^T Y` (X reduced, Y full embeddings).
+
+**Results (3 seeds, baseline model unless stated):**
+1. *Shared shift is small.* `offset_frac` 0.03-0.16. Mean/affine corrections: +0.1 to +1.5 mAP. The drift is
+   image-specific. Consistent with the BNNeck-statistics ablation being negative.
+2. *A linear map helps a little:* 68.55 → 72.70 (3-stage merge), 77.45 → 78.65 (gradual). Most of the drift is
+   not linear in the embedding.
+3. *Schedule:* gradual ToMe at 1.41 GFLOPs: 77.45 ± 1.39; our 3-stage at 1.46: 68.55 ± 1.11. About half of the
+   "collapse" we reported was our schedule.
+4. *Depth:* halving tokens only at block 4 / 7 / 10 costs 3.8 / 1.2 / 0.2 mAP. Intuition: after an early
+   reduction every later block computes on changed inputs, so the error compounds through more layers; late
+   tokens are also more redundant because attention has already mixed information into the class token.
+5. *Resolution:* 192x96 queries (72 tokens, 1.62 GFLOPs) 81.38 ± 0.36 with no training; 160x80 (1.12) 75.81.
+   At equal cost this is above untrained merging and within about 2.4 mAP of TBSD.
+   **Caveat:** Market-1501 crops are natively 128x64 and are upsampled to 256x128, so lower input resolution
+   discards little real detail on this dataset. Needs a dataset with higher native resolution.
+6. *Transfer:* the TBSD model, never trained on low resolution, is better there too (78.26 vs 75.81 at 1.12 G).
+   Two-pass training buys robustness to *having fewer tokens* in general.
+7. *Selection:* with the exact EViT fusion, class-attention top-k is still below random
+   (72.93 ± 3.28 vs 78.06 ± 0.63). Its offset fraction is not larger than random's, so the "systematic bias"
+   explanation is ruled out. Still unexplained. One remaining hypothesis: top-k keeps a spatially clustered
+   subset while random keeps coverage; a test is top-k within spatial strata.
+
+**What we learned.** The honest size of TBSD's advantage is about +2.4 mAP at half compute over a training-free
+alternative, for 1.85x training time and about 1 mAP at full tokens. The earlier +13.4 compared against a
+baseline that our own schedule had weakened. This must be stated in any report.
+
+## 4.6 Decision and next experiment (E13, running)
+ViT-B validation was moved behind a more decisive test: replace the 3-stage merged second pass with
+(a) a low-resolution view, (b) gradual ToMe, (c) either at random; 3 seeds each; same budget as TBSD.
+Expectations recorded before results: (a) improves low-resolution queries beyond 81.4 at 1.62 GFLOPs and trains
+faster; (b) loses less at full tokens than TBSD; (c) unknown.
+Candidate directions that follow from the evidence are in METHOD_CANDIDATES.md (C1 retrofit query encoder with
+a frozen gallery model; C2 knob-agnostic compatibility; C3 asymmetric gradient projection; C4 drift-calibrated
+schedule).

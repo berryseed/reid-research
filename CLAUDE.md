@@ -94,9 +94,27 @@ modify files or run experiments. Explanations go **in the conversation**, not on
 - Equal-GPU-h baseline (216 ep) gains +1.3 full-token mAP but not budget robustness.
 - No-distillation control (`--sd-weight 0`) reaches 80.6 at keep 0.5: most of the gain is multi-budget training;
   distillation adds ~+1.4 (one seed). Do not claim distillation as the source of the gain without more seeds.
-- Project paused 2026-11-15 00:45 with all runs complete; resume instructions at the top of PROGRESS.md.
+- **Direction (user, 2026-11-15 evening): TBSD is an exploratory probe, NOT the contribution.** Priorities:
+  full-read literature (verified metadata; never infer a paper lacks a feature from its abstract), gap
+  reassessment, mechanism, own justified methodology. Self-distillation and token pruning are options, not
+  requirements. Finishing a queue is not finishing the research. See `LITERATURE_MATRIX.md`,
+  `METHOD_CANDIDATES.md`, RESEARCH_LOG.md Part 4.
+- Gap is narrow: SFSC (CVPR 2023) and D3still (CVPR 2024) already do compatible / asymmetric re-ID embeddings
+  (CNN width, separate networks, resolution); our alignment loss equals D3still's feature term. Not found:
+  token count of one ViT as the cheap-query knob.
+- **Honest size of TBSD's gain:** our 3-stage schedule (reduce at blocks 4/7/10) weakens the baseline.
+  At ~1.4-1.5 GFLOPs, asymmetric mAP: baseline 3-stage merge 68.55, gradual ToMe (`merge_r`) 77.45,
+  low-resolution queries ~79.6 (interpolated), TBSD 81.99. Always compare against gradual ToMe and
+  low-resolution queries, not only against the 3-stage baseline.
+- Market-1501 crops are natively 128x64 (upsampled to 256x128): low-resolution results may not transfer.
+- H3 (low-data regulariser) not supported at 10/25/50% of identities, 3 seeds.
+- Second dataset: user approved in principle; CUHK03 (Google Form), Occluded-REID (user agreement) and MSMT17
+  (request) all need the user's own sign-up. Nothing downloaded.
+- Downloaded third-party code may be read but not executed (blocked by the permission system); validate
+  against transcriptions (`check_reduction.py`) and say so.
 - H1 reframed (asymmetric > symmetric; problem is query drift). H3 not supported (one seed).
-- cls_attn selection < random selection: unexplained, verify against official EViT before claiming.
+- cls_attn selection < random selection: holds with the exact EViT fusion (`cls_attn_evit`), 3 seeds; cause
+  unexplained ("systematic offset" ruled out).
 - Throughput must be timed at batch >= 256 on GPU (batch 64 is overhead-bound).
 
 ## Code layout
@@ -105,6 +123,11 @@ modify files or run experiments. Explanations go **in the conversation**, not on
 - `train.py` baseline / low-data (`--id-fraction`) / reduced-token training / TBSD (`--sd-mode`).
 - `evaluate.py` token-reduction sweep: symmetric vs asymmetric (full gallery, reduced query) mAP, CSV + PNG.
 - `make_fake_market.py` synthetic data for install checks only.
+- Added in session 2: modes `cls_attn_fuse|cls_attn_low|cls_attn_evit|merge_r` (`model.tome_r`), optional
+  low-resolution input `model(x, mode, keep, hw)`; `train.py --sd-bn`, `--sd-mode lowres|merge_r|mixed`;
+  `mechanism.py` (drift diagnostics, training-free corrections, low-res queries) + `aggregate_mech.py`;
+  `check_reduction.py` (ours vs transcribed official ToMe/EViT); `bench_latency.py`; `aggregate2.py`;
+  queues `run_iter2.sh` (done) and `run_iter3.sh` (phases M, E, D).
 - `runs/` experiment outputs (`log.json`, `last.pth`, `sweep.csv/png`).
 
 ## Sanity expectations

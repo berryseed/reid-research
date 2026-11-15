@@ -328,3 +328,79 @@ cause of TBSD's ~0.5 mAP full-token deficit against the 120-epoch baseline; the 
 default (`shared`) stays. The deficit is shared by the no-distillation variant (83.71), so it comes from
 multi-budget training itself (the reduced pass's ID/triplet gradients), not from the distillation term or BN.
 Phase B started 16:12: `bash run_iter2.sh ... B`.
+
+
+### Phase B results (3 seeds; `fix50_s0..2`, `base_e216_s0..2`), merge 3-stage, mAP full-token gallery / reduced gallery
+| | GPU-h | VRAM | keep 1.0 | 0.8 | 0.7 | 0.6 | 0.5 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Baseline 216 ep | 0.38 | 1.81 | 85.11±0.15 | 84.48±0.15 / 83.95±0.12 | 83.42±0.12 / 82.12±0.06 | 81.08±0.16 / 78.31±0.18 | 69.76±0.73 / 60.38±0.94 |
+| Fixed-budget merge 0.5 | 0.24 | 1.13 | 80.68±0.45 | 80.59±0.44 / 80.56±0.43 | 80.43±0.45 / 80.34±0.43 | 80.04±0.40 / 79.70±0.37 | 79.24±0.39 / 78.45±0.42 |
+
+### Phase C results (low data, 3 seeds; finished 21:47), mAP full-token gallery
+| IDs | config | GPU-h | keep 1.0 | keep 0.7 | keep 0.5 | q_cos@0.5 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 10% | baseline | 0.03 | 55.88±1.83 | 52.62±1.79 | 36.96±0.99 | 0.744 |
+| 10% | TBSD | 0.04 | 53.72±0.20 | 53.02±0.08 | 49.35±0.03 | 0.929 |
+| 25% | baseline | 0.06 | 71.06±0.63 | 68.39±0.63 | 51.39±0.80 | 0.715 |
+| 25% | TBSD | 0.10 | 70.11±0.73 | 69.63±0.79 | 66.87±1.03 | 0.932 |
+| 50% | baseline | 0.12 | 78.66±0.47 | 76.11±0.53 | 59.94±1.44 | 0.716 |
+| 50% | TBSD | 0.21 | 77.76±0.46 | 77.42±0.45 | 75.30±0.50 | 0.940 |
+H3 (regulariser under low data) not supported. Full table: `runs/iter2_summary.csv`, plot `runs/iter2_lowdata.png`.
+
+### Direction review and literature pass (2026-11-15 evening)
+- User instruction: TBSD is exploratory; prioritise full reads, gap reassessment, mechanism, own methodology;
+  second dataset approved subject to verifying source/licence/access.
+- Papers: `pip install pypdf` into `.venv`; PDFs of SFSC, D3still, CSD, SUReID converted to text in the scratchpad
+  (not in the repo). Result: `LITERATURE_MATRIX.md`. Corrections: SUReID real title; MergeTok irrelevant (removed);
+  "worse than random" paper is about VLLMs.
+- Dataset vetting: CUHK03 official page links a Google Form; Occluded-REID repo has a user agreement; MSMT17 by
+  request. Nothing downloaded.
+- Official code read: facebookresearch/ToMe `tome/merge.py`, `tome/patch/timm.py`; youweiliang/evit `evit.py`
+  (saved in the scratchpad, not executed: running downloaded code was blocked by the permission system).
+  `check_reduction.py` compares ours with a transcription: merge diff 0, top-k diff 0, fused token same direction,
+  different norm.
+
+### Code changes (commit 64ac40e)
+- `common.py`: modes `merge_r` (`model.tome_r` tokens merged in every block, cap half) and `cls_attn_evit`;
+  `select_tokens_fuse(..., normalize=)`; `forward/backbone(..., hw=None)` low-resolution input with resampled
+  position embedding. Checks: same-size `hw` diff 0.0; `merge@0.5` on base_s0 reproduces 67.42 (sweep 67.4).
+- `train.py`: `--sd-mode lowres | merge_r | mixed`; `SD_RES`, `SD_RS`. Smoke: `runs/smoke_{lowres,merge_r,mixed}`.
+- New: `mechanism.py`, `aggregate_mech.py`, `check_reduction.py`, `run_iter3.sh`, `METHOD_CANDIDATES.md`.
+
+### Mechanism diagnostics (`runs/mechanism.csv`, 3 seeds each; asymmetric mAP, full-token gallery)
+Command: `.venv/Scripts/python.exe mechanism.py --data C:/Users/user/data/Market-1501-v15.09.15 --ckpts runs/{base,tbsd}_s{0,1,2}/last.pth --out runs/mechanism.csv`;
+table: `.venv/Scripts/python.exe aggregate_mech.py`. Corrections fitted on 6,468 unlabeled training images.
+
+| group | query setting | GFLOPs | q_cos | offset frac | raw | mean fix | ridge map |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| base | merge 3-stage 0.7 | 1.92 | 0.953 | 0.044 | 82.50±0.55 | 82.58 | 82.64 |
+| base | gradual ToMe r=7 | 1.94 | 0.956 | 0.038 | 82.79±0.71 | 82.83 | 82.84 |
+| base | random 0.7 | 1.92 | 0.851 | 0.028 | 78.06±0.63 | 78.21 | 78.21 |
+| base | cls_attn 0.7 | 1.92 | 0.815 | 0.044 | 72.66±3.29 | 73.19 | 74.87 |
+| base | cls_attn avg-fuse 0.7 | 1.95 | 0.829 | 0.044 | 73.82±2.99 | 74.31 | 75.72 |
+| base | cls_attn EViT-fuse 0.7 | 1.95 | 0.819 | 0.050 | 72.93±3.28 | 73.49 | 75.05 |
+| base | merge 3-stage 0.5 | 1.46 | 0.733 | 0.066 | 68.55±1.11 | 69.99 | 72.70 |
+| base | gradual ToMe r=11 | 1.41 | 0.836 | 0.055 | 77.45±1.39 | 77.86 | 78.65 |
+| base | random 0.5 | 1.46 | 0.595 | 0.069 | 56.81±0.87 | 58.57 | 61.19 |
+| base | cls_attn EViT-fuse 0.5 | 1.49 | 0.513 | 0.080 | 37.51±4.69 | 40.92 | 46.27 |
+| base | merge 0.5 at block 4 only | 1.87 | 0.917 | 0.064 | 80.65±0.88 | 80.90 | 81.14 |
+| base | merge 0.5 at block 7 only | 2.24 | 0.969 | 0.043 | 83.22±0.45 | 83.28 | 83.27 |
+| base | merge 0.5 at block 10 only | 2.61 | 0.995 | 0.054 | 84.24±0.47 | 84.25 | 84.17 |
+| base | low-res 224x112 | 2.22 | 0.943 | 0.060 | 83.67±0.49 | 83.75 | 83.71 |
+| base | low-res 192x96 | 1.62 | 0.893 | 0.128 | 81.38±0.36 | 81.76 | 82.13 |
+| base | low-res 160x80 | 1.12 | 0.789 | 0.159 | 75.81±0.43 | 77.09 | 78.58 |
+| base | low-res 128x64 | 0.72 | 0.609 | 0.175 | 60.13±2.68 | 63.88 | 69.00 |
+| tbsd | merge 3-stage 0.5 | 1.46 | 0.944 | 0.042 | 81.99±0.18 | 82.03 | 81.77 |
+| tbsd | gradual ToMe r=11 | 1.41 | 0.942 | 0.055 | 81.77±0.18 | 81.89 | 81.87 |
+| tbsd | random 0.5 | 1.46 | 0.793 | 0.087 | 72.58±0.33 | 73.30 | 73.57 |
+| tbsd | low-res 192x96 | 1.62 | 0.922 | 0.168 | 81.91±0.32 | 82.14 | 82.34 |
+| tbsd | low-res 160x80 | 1.12 | 0.844 | 0.209 | 78.26±0.38 | 78.99 | 79.90 |
+| tbsd | low-res 128x64 | 0.72 | 0.714 | 0.232 | 69.26±0.90 | 71.69 | 74.21 |
+
+Low-resolution queries here are downsized from the 256x128 network input by bicubic interpolation with
+antialiasing; the patch-embedding cost of the removed patches is subtracted from the GFLOPs estimate.
+
+### Iteration-3 queue launched 22:02
+`bash run_iter3.sh /c/Users/user/data/Market-1501-v15.09.15 M E D >> runs/queue_iter3.txt 2>&1`
+Decision recorded: ViT-B reference moved behind the second-pass variants, because the diagnostics made the
+resolution-vs-merge comparison more decisive than validating the 3-stage TBSD on a larger backbone.

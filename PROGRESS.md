@@ -4,41 +4,41 @@ Current state at a glance. Detailed chronological record with exact commands and
 `PROGRESS_LOG.md`. Background, decisions and literature: `PROJECT_CONTEXT.md`.
 All numbers are Market-1501, ViT-S/16 (ImageNet-21k->1k augreg weights), 256x128, 120 epochs, unless stated.
 
-_Last updated: 2026-11-15 ~15:15 local (session 2, after power-outage recovery)._
+_Last updated: 2026-11-15 ~22:05 local (session 2, after the user's research-direction review)._
 
-## Current status: iteration 2 running (queue `run_iter2.sh`, log `runs/queue_iter2.txt`)
-- **Power outage 2026-11-15 ~12:33** during `tbsd_bnns_s0` (epoch 95 of 120). Recovery at 14:59:
-  - Validated: every `last.pth` (16 files) loads with finite weights; every `log.json` parses; every sweep CSV is
-    complete; every PNG verifies; `git fsck` clean; local `main` equal to `origin/main`; no `.tmp` leftovers.
-  - Latest valid checkpoint: `runs/tbsd_bnns_s0/ckpt.pth`, epoch 94, step 18988, 0.314 h trained, with model,
-    optimizer (152 momentum buffers), AMP scaler, LR-schedule step and all RNG states. Resumed from it at 15:02
-    (`resumed from ... epoch 94 done`), not restarted.
-  - **Lost to the outage:** the unfinished part of epoch 95 of that run (under 12 s of training) and about 2.5 h of
-    idle wall-clock. No completed result was lost. Finished-but-uncommitted results (selection sweeps, latency,
-    `tbsd_nosd_s1/s2`) were intact on disk and are now pushed.
-  - Resume on GPU is statistically equivalent, not bit-exact (see Known issues); `tbsd_bnns_s0` is a resumed run.
-- Protection added: `run_iter2.sh` commits and pushes each run's metrics as soon as its sweep finishes;
-  `train.py` already writes an atomic resumable `ckpt.pth` every epoch (about 12 s).
-- Phase status: S (selection diagnostics, latency) done; A (no-distillation seeds done; BNNeck ablation running);
-  B (fixed-budget control, equal-GPU-h seeds), C (low data 10/25/50%), D (ViT-B) pending.
-- If interrupted again: `bash run_iter2.sh /c/Users/user/data/Market-1501-v15.09.15 A B C D >> runs/queue_iter2.txt 2>&1`
-  (finished runs are skipped, the interrupted one resumes from its `ckpt.pth`).
-- Final checkpoints (not in Git) are `runs/<name>/last.pth` on the training PC. Dataset: `C:/Users/user/data/Market-1501-v15.09.15`.
+## Current status: direction under reassessment; iteration-3 queue running (`run_iter3.sh`, log `runs/queue_iter3.txt`)
+- **Research direction (user, 2026-11-15):** TBSD is an exploratory probe, not the contribution. Priorities:
+  full-read literature review, gap reassessment, mechanism, own methodology. See `LITERATURE_MATRIX.md`,
+  `METHOD_CANDIDATES.md`, RESEARCH_LOG.md Part 4.
+- **Queue now running:** phase M (diagnostics on controls), phase E (`sp_lowres`, `sp_merge_r`, `sp_mixed`,
+  3 seeds each: the cheap second pass is a smaller image / gradual ToMe / either), phase D (ViT-B reference).
+  If interrupted: `bash run_iter3.sh /c/Users/user/data/Market-1501-v15.09.15 M E D >> runs/queue_iter3.txt 2>&1`
+  (finished runs are skipped, the interrupted one resumes from `ckpt.pth`; each finished run is auto-pushed).
+- Iteration 2 (phases S, A, B, C of `run_iter2.sh`) is complete; all 16 low-data runs done and pushed.
+- Power outage 2026-11-15 ~12:33: recovered without loss of completed results (details in PROGRESS_LOG.md).
 
-### New results so far in iteration 2 (verified runs; full tables in PROGRESS_LOG.md)
-- **Distillation term, 3 seeds:** multi-budget training without distillation 80.56 ± 0.06 vs TBSD 81.98 ± 0.18 mAP at
-  keep 0.5 (full-token gallery); 78.31 ± 0.12 vs 80.26 ± 0.13 with a reduced gallery; q_cos 0.902 vs 0.944.
-  The distillation term adds about +1.4 / +1.9 mAP at the lowest budget, outside seed noise. At full tokens the
-  difference (+0.24) is not outside noise. Multi-budget training itself still accounts for most of the gain
-  (+12.0 of the +13.4 over the baseline).
-- **Selection diagnostics, 3 seeds, baseline checkpoints, keep 0.7, full-token gallery mAP:** random 77.99 ± 0.61,
-  class-attention 72.66 ± 3.29, class-attention + EViT fused token 73.82 ± 2.99, least-attended tokens 37.62 ± 6.26.
-  Class attention does carry identity information (inverting it is far worse), the fused token helps by about 1 mAP,
-  and class-attention selection is still below random for a full-token gallery, with much larger seed variance.
-  With query and gallery both reduced, class attention and random are within noise at keep 0.8 and 0.7.
-- **Latency (forward only, random input, ViT-S, `runs/latency.csv`):** merge keep 0.5 vs full tokens:
-  GPU batch 256 0.062 vs 0.111 ms/img (1.78x); CPU batch 1 11.9 vs 16.3 ms (1.37x); CPU batch 8 6.2 vs 11.1 ms (1.78x);
-  **GPU batch 1 is slower with merging (8.5 vs 6.0 ms)**: the matching step dominates at that size.
+### Findings that changed the picture (3 seeds unless stated; full tables in PROGRESS_LOG.md)
+- **Gap is narrower than assumed.** SFSC (CVPR 2023) already trains mutually compatible multi-capacity re-ID
+  embeddings (CNN width) on Market-1501/MSMT17; D3still (CVPR 2024) does asymmetric retrieval on MSMT17; our
+  alignment loss equals their feature term. Not found: token count of one ViT as the asymmetric knob.
+- **Our headline gain was inflated by our own 3-stage schedule.** Baseline at ~1.4-1.5 GFLOPs (asymmetric mAP):
+  3-stage merge 68.55 ± 1.11; official-style gradual ToMe 77.45 ± 1.39; low-resolution queries ~79.6
+  (interpolated; 81.38 ± 0.36 at 1.62 G, 75.81 ± 0.43 at 1.12 G); TBSD 81.99 ± 0.18. TBSD's margin over the
+  best training-free option is about +2.4 mAP for 1.85x training time and ~1 mAP at full tokens.
+- **Low-resolution queries are a strong training-free competitor** (caveat: Market-1501 is natively 128x64).
+- **Drift is per-image**, not a shared shift (offset fraction 0.03-0.16); a closed-form linear map recovers
+  +1 to +4 mAP. Early reduction is the costly part (block 4 / 7 / 10 only: -3.8 / -1.2 / -0.2 mAP).
+- **Implementation check:** our merge and top-k selection equal a transcription of official ToMe/EViT; our
+  fused token was an average where EViT uses a sum. With the exact EViT fusion, class-attention selection is
+  still below random (72.93 ± 3.28 vs 78.06 ± 0.63, keep 0.7).
+- **H3 not supported:** at 10/25/50% of identities TBSD is 2.2/0.9/0.9 mAP below the baseline at full tokens;
+  the low-budget gain persists (+12 to +15 with the 3-stage schedule).
+- Earlier iteration-2 results stand: distillation term adds +1.4 at keep 0.5; BNNeck-stat ablation negative;
+  fixed-budget specialist loses to TBSD; equal-GPU-hour baseline 85.11 vs TBSD 83.95 at full tokens.
+
+### Blocked on the user
+- Second dataset: CUHK03 needs the official Google Form (personal details, CUHK terms); Occluded-REID ships a
+  user agreement (academic use only); MSMT17 needs a request to PKU. None downloaded.
 
 ## How to resume the project
 1. Open the folder in Claude Code; read `CLAUDE.md`, then this file, then the end of `PROGRESS_LOG.md`.
