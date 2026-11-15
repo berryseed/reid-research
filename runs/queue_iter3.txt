@@ -10,3 +10,6 @@ pushed tbsd_nosd_s0
 === mech tbsd_nosd_s1 Sun Nov 15 22:09:26 BST 2026
 pushed tbsd_nosd_s1
 === mech tbsd_nosd_s2 Sun Nov 15 22:11:07 BST 2026
+pushed tbsd_nosd_s2
+##### phase E Sun Nov 15 22:12:46 BST 2026
+=== train sp_lowres_s0 Sun Nov 15 22:12:46 BST 2026
