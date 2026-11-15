@@ -38,3 +38,7 @@ done. train time 0.38 h, checkpoint: runs/tbsd_bnns_s2\last.pth
 pushed tbsd_bnns_s2
 === all done Sun Nov 15 16:11:45 BST 2026
 ##### phase B Sun Nov 15 16:12:10 BST 2026
+=== train fix50_s0 Sun Nov 15 16:12:10 BST 2026
+epoch 120/120 loss 1.048 id 1.046 tri 0.002 sd 0.000 | 14.6 min | mAP 80.4 R1 92.0
+done. train time 0.24 h, checkpoint: runs/fix50_s0\last.pth
+=== sweep fix50_s0 Sun Nov 15 16:30:21 BST 2026
