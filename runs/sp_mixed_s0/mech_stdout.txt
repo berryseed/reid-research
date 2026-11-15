@@ -1,0 +1,22 @@
+cached 3368 query and 6468 training images
+== runs/sp_mixed_s0/last.pth: full-token mAP 83.77, 2.930 GFLOPs
+{'ckpt': 'sp_mixed_s0', 'setting': 'merge@0.7', 'gflops': 1.921, 'q_cos': 0.986, 'offset_frac': 0.0393, 'asym_raw': 83.17, 'asym_mean': 83.19, 'asym_affine': 83.18, 'asym_ridge': 82.94}
+{'ckpt': 'sp_mixed_s0', 'setting': 'random@0.7', 'gflops': 1.921, 'q_cos': 0.9201, 'offset_frac': 0.0181, 'asym_raw': 80.02, 'asym_mean': 80.04, 'asym_affine': 80.04, 'asym_ridge': 79.71}
+{'ckpt': 'sp_mixed_s0', 'setting': 'cls_attn@0.7', 'gflops': 1.921, 'q_cos': 0.8457, 'offset_frac': 0.0399, 'asym_raw': 73.91, 'asym_mean': 74.37, 'asym_affine': 74.4, 'asym_ridge': 75.51}
+{'ckpt': 'sp_mixed_s0', 'setting': 'cls_attn_fuse@0.7', 'gflops': 1.948, 'q_cos': 0.8557, 'offset_frac': 0.0398, 'asym_raw': 74.98, 'asym_mean': 75.37, 'asym_affine': 75.39, 'asym_ridge': 76.3}
+{'ckpt': 'sp_mixed_s0', 'setting': 'cls_attn_evit@0.7', 'gflops': 1.948, 'q_cos': 0.8502, 'offset_frac': 0.0425, 'asym_raw': 74.49, 'asym_mean': 74.96, 'asym_affine': 74.98, 'asym_ridge': 76.02}
+{'ckpt': 'sp_mixed_s0', 'setting': 'merge_r(r=7)~0.7', 'gflops': 1.941, 'q_cos': 0.9889, 'offset_frac': 0.0341, 'asym_raw': 83.55, 'asym_mean': 83.53, 'asym_affine': 83.53, 'asym_ridge': 83.3}
+{'ckpt': 'sp_mixed_s0', 'setting': 'merge@0.5', 'gflops': 1.463, 'q_cos': 0.8967, 'offset_frac': 0.0475, 'asym_raw': 79.11, 'asym_mean': 79.22, 'asym_affine': 79.22, 'asym_ridge': 79.2}
+{'ckpt': 'sp_mixed_s0', 'setting': 'random@0.5', 'gflops': 1.463, 'q_cos': 0.7588, 'offset_frac': 0.0429, 'asym_raw': 67.89, 'asym_mean': 68.61, 'asym_affine': 68.64, 'asym_ridge': 68.88}
+{'ckpt': 'sp_mixed_s0', 'setting': 'cls_attn@0.5', 'gflops': 1.463, 'q_cos': 0.5547, 'offset_frac': 0.0599, 'asym_raw': 38.52, 'asym_mean': 41.43, 'asym_affine': 41.56, 'asym_ridge': 46.81}
+{'ckpt': 'sp_mixed_s0', 'setting': 'cls_attn_fuse@0.5', 'gflops': 1.489, 'q_cos': 0.5779, 'offset_frac': 0.0599, 'asym_raw': 41.5, 'asym_mean': 44.41, 'asym_affine': 44.5, 'asym_ridge': 49.64}
+{'ckpt': 'sp_mixed_s0', 'setting': 'cls_attn_evit@0.5', 'gflops': 1.489, 'q_cos': 0.5684, 'offset_frac': 0.0639, 'asym_raw': 40.24, 'asym_mean': 43.33, 'asym_affine': 43.45, 'asym_ridge': 48.71}
+{'ckpt': 'sp_mixed_s0', 'setting': 'merge_r(r=11)~0.5', 'gflops': 1.407, 'q_cos': 0.9521, 'offset_frac': 0.0386, 'asym_raw': 82.11, 'asym_mean': 82.07, 'asym_affine': 82.07, 'asym_ridge': 81.86}
+{'ckpt': 'sp_mixed_s0', 'setting': 'merge@0.5,stage3only', 'gflops': 1.873, 'q_cos': 0.9703, 'offset_frac': 0.0624, 'asym_raw': 82.4, 'asym_mean': 82.42, 'asym_affine': 82.42, 'asym_ridge': 82.18}
+{'ckpt': 'sp_mixed_s0', 'setting': 'merge@0.5,stage6only', 'gflops': 2.241, 'q_cos': 0.9896, 'offset_frac': 0.0385, 'asym_raw': 83.27, 'asym_mean': 83.33, 'asym_affine': 83.33, 'asym_ridge': 83.12}
+{'ckpt': 'sp_mixed_s0', 'setting': 'merge@0.5,stage9only', 'gflops': 2.609, 'q_cos': 0.9986, 'offset_frac': 0.08, 'asym_raw': 83.72, 'asym_mean': 83.72, 'asym_affine': 83.72, 'asym_ridge': 83.61}
+{'ckpt': 'sp_mixed_s0', 'setting': 'lowres224x112(98tok)', 'gflops': 2.221, 'q_cos': 0.9799, 'offset_frac': 0.0203, 'asym_raw': 83.72, 'asym_mean': 83.72, 'asym_affine': 83.72, 'asym_ridge': 83.52}
+{'ckpt': 'sp_mixed_s0', 'setting': 'lowres192x96(72tok)', 'gflops': 1.62, 'q_cos': 0.9719, 'offset_frac': 0.0484, 'asym_raw': 83.46, 'asym_mean': 83.48, 'asym_affine': 83.48, 'asym_ridge': 83.2}
+{'ckpt': 'sp_mixed_s0', 'setting': 'lowres160x80(50tok)', 'gflops': 1.122, 'q_cos': 0.9547, 'offset_frac': 0.0789, 'asym_raw': 82.84, 'asym_mean': 82.88, 'asym_affine': 82.88, 'asym_ridge': 82.59}
+{'ckpt': 'sp_mixed_s0', 'setting': 'lowres128x64(32tok)', 'gflops': 0.72, 'q_cos': 0.9175, 'offset_frac': 0.1029, 'asym_raw': 81.25, 'asym_mean': 81.42, 'asym_affine': 81.42, 'asym_ridge': 80.95}
+saved runs/sp_mixed_s0/mech.csv
