@@ -314,3 +314,17 @@ inference. CPU batch-8 numbers come from 10 iterations and are not monotonic (no
 Conclusion: the cosine distillation term is a real but modest contribution (+1.42 / +1.95 mAP at keep 0.5, well
 outside seed spread; +0.24 at full tokens, not significant) at no measurable extra training cost. Most of the budget
 robustness (+12.0 of +13.4 over the baseline at keep 0.5) comes from multi-budget training.
+
+### Phase A finished 16:11 — BNNeck running-stat ablation, 3 seeds (`tbsd_bnns_s0..2`, `--sd-bn nostat`)
+`tbsd_bnns_s0` is the run resumed after the outage (epochs 95-120 after resume). mAP, merge, full-token / reduced gallery:
+
+| | GPU-h | keep 1.0 | 0.8 | 0.7 | 0.6 | 0.5 |
+| --- | --- | --- | --- | --- | --- | --- |
+| TBSD (shared BN stats) | 0.41 | 83.95±0.13 | 83.89±0.13 / 83.84±0.15 | 83.70±0.12 / 83.48±0.12 | 83.29±0.13 / 82.71±0.06 | 81.98±0.18 / 80.26±0.13 |
+| TBSD, stats from full pass only | 0.40 | 83.83±0.20 | 83.79±0.18 / 83.72±0.19 | 83.60±0.19 / 83.35±0.19 | 83.22±0.22 / 82.65±0.24 | 81.99±0.19 / 80.33±0.23 |
+
+**Negative result:** no difference at any budget (all within seed spread). BNNeck running-stat mixing is NOT the
+cause of TBSD's ~0.5 mAP full-token deficit against the 120-epoch baseline; the hypothesis is rejected and the
+default (`shared`) stays. The deficit is shared by the no-distillation variant (83.71), so it comes from
+multi-budget training itself (the reduced pass's ID/triplet gradients), not from the distillation term or BN.
+Phase B started 16:12: `bash run_iter2.sh ... B`.
