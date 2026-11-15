@@ -45,6 +45,24 @@ On resume: read CLAUDE.md, PROJECT_CONTEXT.md, PROGRESS.md, experiment logs and 
   user's explicit OK" still stands, because these instructions do not mention datasets and several re-ID
   datasets need a signed agreement. Dataset-dependent tasks are deferred and listed, not silently skipped.
 
+## Explain everything (standing instructions from the user, 2026-11-15; apply to every session)
+The user wants to be able to reproduce and defend this research independently. Never silently run commands,
+modify files or run experiments. Explanations go **in the conversation**, not only in Markdown files.
+- **Before** each meaningful action: what is about to be done, why it is necessary, how it serves the main
+  research objective, what is expected to happen.
+- **While** doing it: what the commands do; what the code being written or changed does (files, functions);
+  the underlying mathematics, algorithms and concepts; the important parameters and why those values.
+- **After**: what happened and what the output means; whether it met the expectation; any errors, their cause
+  and the fix; what was learned; what comes next and why.
+- For training experiments state: architecture, dataset, batch size, epochs, iterations, loss functions,
+  hyperparameters, GPU usage, evaluation metrics, expected duration.
+- Never just say something worked: explain how and why.
+- Start beginner-friendly, then go deeper into the technical and mathematical detail.
+- Do not wait for acknowledgement after explaining; keep working autonomously.
+- Group repetitive operations, but never skip the explanation of an important technical decision.
+- Maintain `RESEARCH_LOG.md` (explanatory record: concepts, reasoning, interpretation of every experiment).
+  `PROGRESS_LOG.md` stays the terse chronological record (commands, tables); `PROGRESS.md` the status summary.
+
 ## Version control (standing instructions from the user, 2026-11-14)
 - Git repo in this folder; private GitHub remote `origin`. The user authorised ongoing commits and pushes.
 - Create a checkpoint commit (and push) **before** major code or architecture changes.
