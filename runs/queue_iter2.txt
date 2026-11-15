@@ -70,3 +70,8 @@ skip sweep base_id25_s0
 skip train tbsd_id25_s0
 skip sweep tbsd_id25_s0
 === train base_id25_s1 Sun Nov 15 18:24:46 BST 2026
+epoch 120/120 loss 0.886 id 0.884 tri 0.001 sd 0.000 | 3.5 min | mAP 71.1 R1 87.6
+done. train time 0.06 h, checkpoint: runs/base_id25_s1\last.pth
+=== sweep base_id25_s1 Sun Nov 15 18:31:53 BST 2026
+pushed base_id25_s1
+=== train tbsd_id25_s1 Sun Nov 15 18:35:16 BST 2026
