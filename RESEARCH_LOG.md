@@ -390,3 +390,23 @@ faster; (b) loses less at full tokens than TBSD; (c) unknown.
 Candidate directions that follow from the evidence are in METHOD_CANDIDATES.md (C1 retrofit query encoder with
 a frozen gallery model; C2 knob-agnostic compatibility; C3 asymmetric gradient projection; C4 drift-calibrated
 schedule).
+
+
+### Control diagnostics, phase M of run_iter3.sh (3 seeds; `runs/{base_e216,tbsd_nosd}_s*/mech.csv`), asymmetric mAP
+| group | query setting | GFLOPs | q_cos | raw | ridge map |
+| --- | --- | --- | --- | --- | --- |
+| baseline 216 ep | gradual ToMe r=7 | 1.94 | 0.961 | 83.80±0.04 | 83.75±0.03 |
+| baseline 216 ep | merge 3-stage 0.5 | 1.46 | 0.729 | 69.75±0.72 | 73.56±0.42 |
+| baseline 216 ep | gradual ToMe r=11 | 1.41 | 0.849 | 78.97±0.12 | 79.70±0.13 |
+| baseline 216 ep | low-res 192x96 | 1.62 | 0.890 | 82.06±0.19 | 82.80±0.23 |
+| baseline 216 ep | low-res 160x80 | 1.12 | 0.770 | 75.72±0.51 | 78.96±0.18 |
+| multi-budget, no distillation | merge 3-stage 0.5 | 1.46 | 0.902 | 80.56±0.07 | 80.56±0.16 |
+| multi-budget, no distillation | gradual ToMe r=11 | 1.41 | 0.916 | 80.84±0.26 | 81.02±0.30 |
+| multi-budget, no distillation | low-res 192x96 | 1.62 | 0.907 | 81.51±0.21 | 81.99±0.12 |
+| multi-budget, no distillation | low-res 160x80 | 1.12 | 0.820 | 77.37±0.46 | 79.17±0.23 |
+
+**Equal-GPU-hour reading (negative result for TBSD on Market-1501):** the 216-epoch baseline with low-resolution
+queries plus the closed-form linear map reaches 82.80 at 1.62 GFLOPs and 78.96 at 1.12 GFLOPs; TBSD reaches
+81.91-82.34 and 78.26-79.90 at the same costs, and is 1.16 mAP lower at full tokens (83.95 vs 85.11).
+Linear interpolation at 1.46 GFLOPs (an estimate): about 80.0 raw / 81.6 with the map, vs TBSD 81.99.
+Caveat: Market-1501 crops are natively 128x64; needs a higher-resolution dataset before generalising.

@@ -25,6 +25,9 @@ _Last updated: 2026-11-15 ~22:05 local (session 2, after the user's research-dir
   3-stage merge 68.55 ± 1.11; official-style gradual ToMe 77.45 ± 1.39; low-resolution queries ~79.6
   (interpolated; 81.38 ± 0.36 at 1.62 G, 75.81 ± 0.43 at 1.12 G); TBSD 81.99 ± 0.18. TBSD's margin over the
   best training-free option is about +2.4 mAP for 1.85x training time and ~1 mAP at full tokens.
+- **Equal-GPU-hour control (phase M): the 216-epoch baseline + low-resolution queries + closed-form linear map
+  matches TBSD below full cost (82.80 vs 81.91-82.34 at 1.62 G; 78.96 vs 78.26-79.90 at 1.12 G) and is 1.16 mAP
+  better at full tokens. On Market-1501, TBSD as built is not justified against this baseline.**
 - **Low-resolution queries are a strong training-free competitor** (caveat: Market-1501 is natively 128x64).
 - **Drift is per-image**, not a shared shift (offset fraction 0.03-0.16); a closed-form linear map recovers
   +1 to +4 mAP. Early reduction is the costly part (block 4 / 7 / 10 only: -3.8 / -1.2 / -0.2 mAP).
