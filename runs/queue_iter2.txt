@@ -22,3 +22,8 @@ skip sweep tbsd_nosd_s1
 skip train tbsd_nosd_s2
 skip sweep tbsd_nosd_s2
 === train tbsd_bnns_s0 Sun Nov 15 15:00:21 BST 2026
+epoch 120/120 loss 2.093 id 1.037 tri 0.001 sd 0.015 | 24.4 min | mAP 83.8 R1 94.0
+done. train time 0.41 h, checkpoint: runs/tbsd_bnns_s0\last.pth
+=== sweep tbsd_bnns_s0 Sun Nov 15 15:07:16 BST 2026
+pushed tbsd_bnns_s0
+=== train tbsd_bnns_s1 Sun Nov 15 15:10:44 BST 2026
