@@ -87,6 +87,20 @@ modify files or run experiments. Explanations go **in the conversation**, not on
 - To pause the project safely: STOP-file the running run (or let it finish), wait for the process to exit,
   commit/push metrics, confirm no python.exe from `.venv` is running.
 
+## State at the last pause (2026-11-16 01:00, PC shutdown; details and resume commands: PROGRESS.md)
+- Nothing was left running. `run_iter3.sh` was paused by STOP file. Done: phase M; `sp_lowres_s0/s1`,
+  `sp_merge_r_s0/s1`, `sp_mixed_s0`. Partial: `sp_mixed_s1` (`runs/sp_mixed_s1/ckpt.pth`, epoch 61/120).
+  Pending: `sp_lowres_s2`, `sp_merge_r_s2`, `sp_mixed_s2`, phase D (`vitb_base_s0`, `vitb_tbsd_s0`, ViT-B latency).
+- Resume: `bash run_iter3.sh /c/Users/user/data/Market-1501-v15.09.15 E D >> runs/queue_iter3.txt 2>&1`
+  (skips finished runs, resumes the partial one). Verify first that no `.venv` python.exe is already running.
+- **Priority on return (user, 2026-11-16): finish the first research-iteration report** — compare about 5-6
+  papers, defensible preliminary gap, our own methodology, evaluation against appropriate benchmarks. It does
+  not need to be perfect or to beat existing methods. Checklist in PROGRESS.md; reasoning in RESEARCH_LOG.md Part 5.
+- Preliminary (2/2/1 seeds, NOT results yet): gradual-merge second pass loses least at full tokens (84.25) and
+  reaches 82.8 at 1.41 GFLOPs; low-resolution second pass reaches 82.4 at 1.12 and 80.9 at 0.72 GFLOPs but
+  83.1 at full tokens; both are ahead of the equal-GPU-hour baseline + linear map below ~1.5 GFLOPs.
+- Second dataset still blocked on the user's own sign-up (CUHK03 Google Form preferred; Occluded-REID agreement).
+
 ## Key decisions and results so far (details: PROGRESS.md)
 - Main backbone ViT-S/16 (open question to instructor: ViT-B?). Market-1501 at `C:/Users/user/data/`.
 - TBSD (merge, random keep) is the method under test. 3 seeds: 81.98±0.18 vs 68.56±1.14 mAP at keep 0.5

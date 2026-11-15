@@ -424,3 +424,39 @@ queries plus the closed-form linear map reaches 82.80 at 1.62 GFLOPs and 78.96 a
 81.91-82.34 and 78.26-79.90 at the same costs, and is 1.16 mAP lower at full tokens (83.95 vs 85.11).
 Linear interpolation at 1.46 GFLOPs (an estimate): about 80.0 raw / 81.6 with the map, vs TBSD 81.99.
 Caveat: Market-1501 crops are natively 128x64; needs a higher-resolution dataset before generalising.
+
+
+## 2026-11-16 01:00 — pause for PC shutdown (user request)
+- Inspection 00:59: one run active, `sp_mixed_s1` (PID 11696/6276, started 00:46:41), epoch 59/120, 5.3 GB VRAM.
+  Queue script PID 2872.
+- Pause: `touch runs/sp_mixed_s1/STOP` at 00:59:46. `train.py` printed
+  `paused after epoch 61 (STOP file)` and exited with code 3 at 00:59:54; `run_iter3.sh` printed
+  `PAUSED sp_mixed_s1` and exited (code 3). STOP file removed by `train.py`. Nothing else started.
+- Verification: `runs/sp_mixed_s1/ckpt.pth` (175.6 MB) loaded on CPU: keys model, optim, scaler, epoch=61,
+  step=12322, train_seconds=681.2, log, args (seed 1, sd_mode mixed, 120 epochs), num_classes=751, rng; 156
+  tensors finite; lr 0.004172. The five `runs/sp_*/last.pth` (83 MB each) load, finite, 751 classes.
+  No python.exe left; GPU memory 1.3 GB (desktop only).
+- Iteration-3 phase E timings from `runs/queue_iter3.txt`: sp_lowres_s0 0.36 h (mAP 82.8 / R1 93.0),
+  sp_merge_r_s0 0.44 h (84.2 / 93.8), sp_mixed_s0 0.35 h (83.8 / 93.8), sp_lowres_s1 0.31 h (83.3 / 92.9),
+  sp_merge_r_s1 0.40 h (84.3 / 94.7).
+- Remaining: `sp_mixed_s1` (from epoch 62), `sp_lowres_s2`, `sp_merge_r_s2`, `sp_mixed_s2`, phase D
+  (`vitb_base_s0`, `vitb_tbsd_s0`, `runs/latency_vitb.csv`).
+  Resume: `bash run_iter3.sh /c/Users/user/data/Market-1501-v15.09.15 E D >> runs/queue_iter3.txt 2>&1`
+
+### Partial phase E table (asymmetric mAP raw / with ridge map; per-seed values in brackets)
+| setting | GFLOPs | sp_lowres (s0, s1) | sp_merge_r (s0, s1) | sp_mixed (s0) |
+| --- | --- | --- | --- | --- |
+| full tokens | 2.93 | 83.08 [82.83 83.33] | 84.25 [84.19 84.32] | 83.77 |
+| merge 3-stage 0.7 | 1.92 | 82.13 / 82.06 | 83.73 / 83.59 | 83.17 / 82.94 |
+| gradual ToMe r=7 | 1.94 | 82.22 / 82.09 | 84.06 / 83.86 | 83.55 / 83.30 |
+| random 0.7 | 1.92 | 78.66 / 78.46 | 80.39 / 80.31 | 80.02 / 79.71 |
+| cls_attn EViT-fuse 0.7 | 1.95 | 72.25 / 73.68 | 73.56 / 75.64 | 74.49 / 76.02 |
+| merge 3-stage 0.5 | 1.46 | 74.94 / 76.28 | 79.66 / 79.95 | 79.11 / 79.20 |
+| gradual ToMe r=11 | 1.41 | 79.78 [79.59 79.96] / 79.98 | 82.82 [82.82 82.83] / 82.59 | 82.11 / 81.86 |
+| random 0.5 | 1.46 | 63.93 / 65.85 | 68.62 / 70.31 | 67.89 / 68.88 |
+| low-res 224x112 | 2.22 | 83.06 / 82.88 | 83.90 / 83.84 | 83.72 / 83.52 |
+| low-res 192x96 | 1.62 | 82.84 [82.67 83.01] / 82.61 | 82.72 [82.64 82.79] / 82.96 | 83.46 / 83.20 |
+| low-res 160x80 | 1.12 | 82.37 [82.18 82.55] / 82.12 | 79.84 [79.68 80.00] / 81.03 | 82.84 / 82.59 |
+| low-res 128x64 | 0.72 | 80.91 [80.73 81.08] / 80.59 | 72.83 [72.87 72.79] / 76.22 | 81.25 / 80.95 |
+Incomplete (seed 2 missing; `sp_mixed` one seed): not to be quoted as results. Source: `runs/sp_*/mech.csv`,
+`runs/sp_*/sweep.csv`.

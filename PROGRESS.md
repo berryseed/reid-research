@@ -4,16 +4,69 @@ Current state at a glance. Detailed chronological record with exact commands and
 `PROGRESS_LOG.md`. Background, decisions and literature: `PROJECT_CONTEXT.md`.
 All numbers are Market-1501, ViT-S/16 (ImageNet-21k->1k augreg weights), 256x128, 120 epochs, unless stated.
 
-_Last updated: 2026-11-15 ~22:05 local (session 2, after the user's research-direction review)._
+_Last updated: 2026-11-16 ~01:05 local (session 2 paused for a PC shutdown at the user's request)._
 
-## Current status: direction under reassessment; iteration-3 queue running (`run_iter3.sh`, log `runs/queue_iter3.txt`)
+## Current status: PAUSED (2026-11-16 01:00). Nothing is running. Queue `run_iter3.sh` stopped by STOP file.
 - **Research direction (user, 2026-11-15):** TBSD is an exploratory probe, not the contribution. Priorities:
   full-read literature review, gap reassessment, mechanism, own methodology. See `LITERATURE_MATRIX.md`,
-  `METHOD_CANDIDATES.md`, RESEARCH_LOG.md Part 4.
-- **Queue now running:** phase M (diagnostics on controls), phase E (`sp_lowres`, `sp_merge_r`, `sp_mixed`,
-  3 seeds each: the cheap second pass is a smaller image / gradual ToMe / either), phase D (ViT-B reference).
-  If interrupted: `bash run_iter3.sh /c/Users/user/data/Market-1501-v15.09.15 M E D >> runs/queue_iter3.txt 2>&1`
-  (finished runs are skipped, the interrupted one resumes from `ckpt.pth`; each finished run is auto-pushed).
+  `METHOD_CANDIDATES.md`, RESEARCH_LOG.md Parts 4 and 5.
+- **Priority on return (user, 2026-11-16): complete the first research iteration report** — compare about 5-6
+  relevant papers, state a defensible preliminary gap, present our own methodology, evaluate it against
+  appropriate benchmarks. It does not need to be perfect or to beat existing methods. Checklist below.
+
+### State of the iteration-3 queue at the pause
+| Run | Status | Files |
+| --- | --- | --- |
+| phase M (diagnostics on `base_e216_s0-2`, `tbsd_nosd_s0-2`) | complete, pushed | `runs/<name>/mech.csv` |
+| `sp_lowres_s0`, `sp_lowres_s1` | complete (train + mech + sweep), pushed | `last.pth`, `log.json`, `mech.csv`, `sweep.csv` |
+| `sp_merge_r_s0`, `sp_merge_r_s1` | complete, pushed | same |
+| `sp_mixed_s0` | complete, pushed | same |
+| `sp_mixed_s1` | **partial: paused after epoch 61/120** (step 12,322; 11.4 min trained; mAP 83.2 at epoch 60) | `runs/sp_mixed_s1/ckpt.pth` (verified loadable: model, optimizer, AMP scaler, epoch, step, RNG, log, args) |
+| `sp_lowres_s2`, `sp_merge_r_s2`, `sp_mixed_s2` | pending, not started | none |
+| `vitb_base_s0`, `vitb_tbsd_s0`, `runs/latency_vitb.csv` (phase D) | pending, not started | none |
+
+Checkpoints (`*.pth`) are local only (git-ignored); metrics are on GitHub.
+
+### Exact resume commands (Git Bash, from the project folder)
+- **Everything that is left, in order (recommended):**
+  `bash run_iter3.sh /c/Users/user/data/Market-1501-v15.09.15 E D >> runs/queue_iter3.txt 2>&1`
+  Finished runs are skipped (`last.pth` present); `sp_mixed_s1` continues from `ckpt.pth` at epoch 62; each
+  finished run is evaluated and auto-pushed. Estimated (not measured) remaining time: phase E about 1.6 h,
+  phase D about 2.5 h. Run only phase E by passing `E` alone.
+- **Single runs by hand** (the queue does exactly this):
+  - `.venv/Scripts/python.exe train.py --data C:/Users/user/data/Market-1501-v15.09.15 --out runs/sp_mixed_s1 --resume --seed 1 --sd-mode mixed`
+  - `.venv/Scripts/python.exe train.py --data C:/Users/user/data/Market-1501-v15.09.15 --out runs/sp_lowres_s2 --resume --seed 2 --sd-mode lowres`
+  - `.venv/Scripts/python.exe train.py --data C:/Users/user/data/Market-1501-v15.09.15 --out runs/sp_merge_r_s2 --resume --seed 2 --sd-mode merge_r`
+  - `.venv/Scripts/python.exe train.py --data C:/Users/user/data/Market-1501-v15.09.15 --out runs/sp_mixed_s2 --resume --seed 2 --sd-mode mixed`
+  - after each: `.venv/Scripts/python.exe mechanism.py --data C:/Users/user/data/Market-1501-v15.09.15 --ckpts runs/<name>/last.pth --out runs/<name>/mech.csv`
+    and `.venv/Scripts/python.exe evaluate.py --data C:/Users/user/data/Market-1501-v15.09.15 --ckpt runs/<name>/last.pth --out runs/<name>/sweep.csv --modes merge`
+  - `.venv/Scripts/python.exe train.py --data C:/Users/user/data/Market-1501-v15.09.15 --out runs/vitb_base_s0 --resume --seed 0 --model vit_base_patch16_224`
+  - `.venv/Scripts/python.exe train.py --data C:/Users/user/data/Market-1501-v15.09.15 --out runs/vitb_tbsd_s0 --resume --seed 0 --model vit_base_patch16_224 --sd-mode merge --sd-keep random`
+  - `.venv/Scripts/python.exe bench_latency.py --model vit_base_patch16_224 --out runs/latency_vitb.csv`
+
+### Preliminary results of the second-pass variants (INCOMPLETE: 2 seeds / 2 seeds / 1 seed; not paper numbers)
+Asymmetric mAP, full-token gallery, Market-1501, ViT-S. Reference columns are complete 3-seed means.
+| Query setting | GFLOPs | baseline 120 ep | baseline 216 ep (ridge map) | TBSD 3-stage | `sp_lowres` (2 seeds) | `sp_merge_r` (2 seeds) | `sp_mixed` (1 seed) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| full tokens | 2.93 | 84.45 | 85.11 | 83.95 | 83.08 | 84.25 | 83.77 |
+| low-res 192x96 | 1.62 | 81.38 | 82.06 (82.80) | 81.91 | 82.84 | 82.72 | 83.46 |
+| gradual ToMe r=11 | 1.41 | 77.45 | 78.97 | 81.77 | 79.78 | 82.82 | 82.11 |
+| low-res 160x80 | 1.12 | 75.81 | 75.72 (78.96) | 78.26 | 82.37 | 79.84 | 82.84 |
+| low-res 128x64 | 0.72 | 60.13 | not tabulated here | 69.26 | 80.91 | 72.83 | 81.25 |
+
+Training time (from the queue log): `sp_lowres` 0.36 / 0.31 h, `sp_merge_r` 0.44 / 0.40 h, `sp_mixed` 0.35 h;
+equal-GPU-hour baseline 0.38 h.
+Preliminary reading (to be confirmed with seed 2):
+- Expectation (a) met so far: a low-resolution second pass lifts low-resolution queries far above the untrained
+  model (82.4 vs 75.8 at 1.12 G; 80.9 vs 60.1 at 0.72 G) but costs more at full tokens (83.1 vs 84.45).
+- Expectation (b) met so far: a gradual-merge second pass loses least at full tokens (84.25 vs 84.45; still 0.9
+  below the equal-GPU-hour baseline 85.11) and reaches 82.8 at 1.41 G (+3.9 over the 216-epoch baseline).
+- (c) `sp_mixed`, one seed: good on both knobs, between the two at full tokens.
+- Unlike 3-stage TBSD, these variants are ahead of "equal-GPU-hour baseline + low-res + linear map" below
+  about 1.5 GFLOPs by roughly 3-4 mAP, if the third seed agrees. Caveat unchanged: Market-1501 is natively
+  128x64, so resolution results need a second dataset.
+
+### Earlier status notes
 - Iteration 2 (phases S, A, B, C of `run_iter2.sh`) is complete; all 16 low-data runs done and pushed.
 - Power outage 2026-11-15 ~12:33: recovered without loss of completed results (details in PROGRESS_LOG.md).
 
@@ -39,9 +92,37 @@ _Last updated: 2026-11-15 ~22:05 local (session 2, after the user's research-dir
 - Earlier iteration-2 results stand: distillation term adds +1.4 at keep 0.5; BNNeck-stat ablation negative;
   fixed-budget specialist loses to TBSD; equal-GPU-hour baseline 85.11 vs TBSD 83.95 at full tokens.
 
-### Blocked on the user
-- Second dataset: CUHK03 needs the official Google Form (personal details, CUHK terms); Occluded-REID ships a
-  user agreement (academic use only); MSMT17 needs a request to PKU. None downloaded.
+### Blocked on the user: second dataset (nothing downloaded)
+- **CUHK03 (preferred; higher native resolution, Market-style CUHK03-NP split 767/700 identities, about 3 GB):**
+  the official CUHK page gives access through a Google Form that asks for the applicant's personal details and
+  acceptance of CUHK's terms. The user must fill it in themselves, then place the archive under
+  `C:/Users/user/data/` and say so. Claude will then write the loader; no code depends on it yet.
+- **Occluded-REID (test-only, 2,000 images; cross-domain test comparable with SUReID):** zip in
+  github.com/tinajia2012/ICME2018_Occluded-Person-Reidentification_datasets with a user agreement (academic
+  use only). Needs the user's acceptance.
+- **MSMT17:** request to the PKU authors. Slowest route.
+
+### Requirements for the first research-iteration report (checklist)
+1. **Paper comparison (about 5-6 papers).** Proposed set: SFSC, D3still, SUReID, CSD (all read in full),
+   ToMe and EViT (method sections and official code read), plus Suma and Tolias (resolution asymmetry; **still
+   to read in full** because it is the closest prior work to the low-resolution result). Source:
+   `LITERATURE_MATRIX.md`. Remaining full reads (BCT, AML, MatMamba, ThinkingViT, ACD, ToCom, DiffRate) are
+   second-tier for the report.
+2. **Preliminary gap statement.** Current wording: compatible multi-budget re-ID embeddings (SFSC) and
+   asymmetric re-ID retrieval (D3still) exist with CNN width, separate networks and resolution as the knob;
+   not found in the texts read: the token count of a single ViT as the cheap-query knob, nor compatibility
+   across more than one knob. Must be stated as "not found", not "does not exist".
+3. **Our methodology.** To be fixed after seed 2: budget-compatible training of one ViT with a gradual-merge
+   and/or low-resolution second pass (candidate C2), with candidate C1 (frozen gallery model, trained
+   cheap-query copy) as the alternative that removes the full-token loss. See `METHOD_CANDIDATES.md`.
+4. **Evaluation.** 3 seeds of `sp_*` (3 runs + half a run left); comparison against: 120-epoch baseline,
+   equal-GPU-hour baseline, gradual ToMe untrained, low-resolution queries with and without the linear map,
+   3-stage TBSD, no-distillation control. All exist except seed 2.
+5. **Efficiency measured, not only analytic:** latency/throughput of low-resolution and gradual-merge queries
+   (`bench_latency.py`; GPU batch 1 and 256, CPU). Not yet run for these two settings.
+6. **Stated limitations:** one dataset; native-resolution caveat; one backbone unless phase D is run;
+   full-token deficit; class-attention result unexplained.
+7. Report structure: methodology, results, comparisons, limitations, conclusions, potential contributions.
 
 ## How to resume the project
 1. Open the folder in Claude Code; read `CLAUDE.md`, then this file, then the end of `PROGRESS_LOG.md`.

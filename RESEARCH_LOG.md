@@ -410,3 +410,82 @@ queries plus the closed-form linear map reaches 82.80 at 1.62 GFLOPs and 78.96 a
 81.91-82.34 and 78.26-79.90 at the same costs, and is 1.16 mAP lower at full tokens (83.95 vs 85.11).
 Linear interpolation at 1.46 GFLOPs (an estimate): about 80.0 raw / 81.6 with the map, vs TBSD 81.99.
 Caveat: Market-1501 crops are natively 128x64; needs a higher-resolution dataset before generalising.
+
+
+---
+
+# Part 5. Pause for shutdown (2026-11-16 01:00) and where the research stands
+
+## 5.1 What was paused and how
+The user needed to shut the PC down. One run was training (`sp_mixed_s1`, epoch 59 of 120). A file named `STOP`
+was created in its folder; `train.py` checks for it at every epoch boundary, saves `ckpt.pth` (written to a
+temporary file and renamed, so the file on disk is never half-written) and exits with code 3; the queue script
+reads code 3 as "paused" and exits without starting the next run. The run stopped after epoch 61. The
+checkpoint was then loaded on the CPU and checked (156 weight tensors, all finite; optimizer state; AMP scaler;
+epoch 61; step 12,322; RNG states). There is no scheduler object in this code: the learning rate is a function
+of the step counter (`lr_at(step)`: 5 warm-up epochs, then cosine), so the saved step restores the schedule.
+State table and exact resume commands: PROGRESS.md.
+
+## 5.2 E13 so far: second-pass variants (INCOMPLETE: 2, 2 and 1 seeds)
+**Question.** If the cheap second training pass is a smaller image or the official gradual merge schedule
+instead of our 3-stage merge, do we keep the low-cost gain and lose less at full tokens?
+
+**Setup (each run).** ViT-S/16, Market-1501 (751 identities, 12,936 images), batch 64 (16 identities x 4
+images), 120 epochs x 202 iterations, SGD lr 0.008 with warm-up and cosine decay, AMP. Loss: ID cross-entropy
+(label smoothing 0.1) + batch-hard triplet (margin 0.3) on the full pass and on the cheap pass, plus
+`mean(1 - cos(bn_cheap, sg(bn_full)))`. Cheap pass: `lowres` = image resized to one of 224x112, 192x96, 160x80,
+128x64; `merge_r` = merge r tokens in every block, r from {3,5,7,9,11}; `mixed` = one of the two at random.
+Peak VRAM about 4.9 GB; 19-27 minutes per run.
+
+**Numbers so far** (asymmetric mAP, full-token gallery; table in PROGRESS.md):
+- `sp_lowres` (2 seeds): full 83.08; low-res 192x96 82.84, 160x80 82.37, 128x64 80.91; gradual r=11 79.78.
+- `sp_merge_r` (2 seeds): full 84.25; gradual r=11 82.82; low-res 192x96 82.72, 160x80 79.84, 128x64 72.83.
+- `sp_mixed` (1 seed): full 83.77; gradual r=11 82.11; low-res 192x96 83.46, 160x80 82.84, 128x64 81.25.
+
+**Reading (preliminary).**
+1. Both recorded expectations hold so far: (a) low-resolution training lifts low-resolution queries well above
+   the untrained 81.4 at 1.62 GFLOPs and trains slightly faster than TBSD; (b) gradual-merge training loses
+   less at full tokens than 3-stage TBSD (84.25 vs 83.95; baseline 84.45).
+2. Each model is best on the knob it was trained with and transfers partly to the other; the mixed model is
+   good on both in its one seed. That is the pattern candidate C2 predicted, but one seed proves nothing.
+3. The picture against the equal-GPU-hour baseline changes. 3-stage TBSD was matched by "216-epoch baseline +
+   low-resolution query + linear map" (Part 4). These variants are about 3-4 mAP ahead of that control below
+   roughly 1.5 GFLOPs (82.8 vs 79.0 at 1.41 G; 82.4 vs 79.0 at 1.12 G), while still 0.9-2.0 mAP behind it at
+   full tokens (85.11). So there is a real trade-off to report, not a free gain.
+4. A model trained with low-resolution views scores 80.9 mAP with 128x64 queries at 0.72 GFLOPs, a quarter of
+   the full cost. Hypothesis, not a finding: 128x64 is the native size of Market-1501 crops, so no image
+   information is lost; the untrained model fails there (60.1) only because it has never seen that token
+   layout. This makes the second dataset more important, not less.
+
+## 5.3 Rejected or downgraded hypotheses (with the evidence)
+- **H3, self-distillation as a low-data regulariser:** not supported (10/25/50% of identities, 3 seeds).
+- **"Drift is a shared shift that calibration can undo":** rejected (offset fraction 0.03-0.18; mean and affine
+  corrections give +0.1 to +1.5 mAP).
+- **"Per-budget BatchNorm statistics cause the full-token deficit":** rejected (ablation negative).
+- **"Distillation is the source of the gain":** downgraded; multi-budget training without it reaches 80.56 vs
+  81.98 (the cosine term adds about +1.4).
+- **"TBSD gives +13 mAP at half compute":** withdrawn; against gradual ToMe and low-resolution queries the gain
+  is about +2.4, and the equal-GPU-hour control with a linear map matches it.
+- **"Class-attention selection fails because of our fusion":** rejected; it is still below random with the
+  exact EViT fusion.
+- **"Token pruning + distillation for re-ID is our novelty":** withdrawn (SUReID, SFSC, D3still).
+
+## 5.4 Unresolved questions
+1. Does seed 2 confirm 5.2? (3 runs and half a run left.)
+2. Do the resolution results survive on a dataset with higher native resolution? (Needs the user's sign-up.)
+3. Why is class-attention top-k worse than random selection? (Spatial-coverage test not run.)
+4. Is the multi-budget gain due to the shared classifier? (Separate-classifier control not run.)
+5. Do the full and cheap gradients conflict, as SFSC reports for width? (Gradient-cosine diagnostic not run;
+   decides candidate C3.)
+6. Are low-resolution and gradual-merge queries faster in wall-clock terms, at batch 1 and on CPU? (Not timed.)
+7. Does a frozen-gallery retrofit (candidate C1) reach the same low-cost accuracy with no full-token loss?
+8. Does any of this hold for ViT-B? (Phase D not started.)
+
+## 5.5 Next direction: the first research-iteration report
+The user's priority on return is the first iteration report: about 5-6 papers compared, a defensible preliminary
+gap, our own methodology, an evaluation against appropriate benchmarks; it need not be perfect or win.
+Plan, in order: finish seed 2 (about 1.6 h); read Suma and Tolias in full; time the cheap-query settings; fix
+the methodology (currently leaning to budget-compatible training of one ViT with gradual-merge and
+low-resolution second passes, with the frozen-gallery retrofit as the alternative); write the report with the
+negative results and the single-dataset limitation stated. ViT-B and the mechanism follow-ups come after the
+report unless the instructor asks for them first. Checklist: PROGRESS.md.

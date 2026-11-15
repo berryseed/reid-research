@@ -37,3 +37,10 @@ done. train time 0.31 h, checkpoint: runs/sp_lowres_s1\last.pth
 === sweep sp_lowres_s1 Mon Nov 16 00:11:21 BST 2026
 pushed sp_lowres_s1
 === train sp_merge_r_s1 Mon Nov 16 00:14:37 BST 2026
+epoch 120/120 loss 2.086 id 1.036 tri 0.001 sd 0.012 | 23.8 min | mAP 84.3 R1 94.7
+done. train time 0.40 h, checkpoint: runs/sp_merge_r_s1\last.pth
+=== mech sp_merge_r_s1 Mon Nov 16 00:41:52 BST 2026
+=== sweep sp_merge_r_s1 Mon Nov 16 00:43:24 BST 2026
+pushed sp_merge_r_s1
+=== train sp_mixed_s1 Mon Nov 16 00:46:41 BST 2026
+PAUSED sp_mixed_s1 (resume: rerun this script)
