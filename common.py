@@ -26,7 +26,9 @@ from torch.utils.data import Dataset, Sampler
 import timm
 import torchvision.transforms as T
 
-MODES = ("none", "merge", "cls_attn", "random")
+# cls_attn_fuse: EViT with its fused "inattentive" token (dropped tokens averaged, weighted by class attention)
+# cls_attn_low:  diagnostic only, keeps the patch tokens the class token attends to LEAST
+MODES = ("none", "merge", "cls_attn", "random", "cls_attn_fuse", "cls_attn_low")
 
 
 # --------------------------------------------------------------------------- data
@@ -223,6 +225,16 @@ def select_tokens(x, score, n_keep, n_prefix=1):
     return torch.cat([x[:, :n_prefix], patches], dim=1)
 
 
+def select_tokens_fuse(x, score, n_keep, n_prefix=1):
+    """EViT: keep the top n_keep patch tokens and append one token that is the score-weighted
+    average of the dropped ones (n_keep + 1 patch tokens come out)."""
+    kept = select_tokens(x, score, n_keep, n_prefix)
+    idx = score.topk(n_keep, dim=1).indices
+    w = score.scatter(1, idx, 0.0).clamp(min=0)            # weights of the dropped tokens only
+    fused = (x[:, n_prefix:].float() * w[..., None]).sum(1, keepdim=True) / w.sum(1).clamp(min=1e-6)[:, None, None]
+    return torch.cat([kept, fused.to(x.dtype)], dim=1)
+
+
 # --------------------------------------------------------------------------- model
 class ReIDViT(nn.Module):
     def __init__(self, name="vit_small_patch16_224", num_classes=751, img_size=(256, 128),
@@ -253,7 +265,8 @@ class ReIDViT(nn.Module):
             n_in = x.shape[1]
             if reduce and i in self.reduce_layers:
                 if self.fast_attn:
-                    y, cls_row, key = attention_fast(blk.attn, blk.norm1(x), size, need_cls=mode == "cls_attn")
+                    y, cls_row, key = attention_fast(blk.attn, blk.norm1(x), size,
+                                                     need_cls=mode.startswith("cls_attn"))
                 else:
                     y, attn, key = attention_with_maps(blk.attn, blk.norm1(x), size)
                     cls_row = attn[:, :, 0]
@@ -264,6 +277,10 @@ class ReIDViT(nn.Module):
                     x, size = bipartite_merge(x, size, key, n_patch - n_keep, npre)
                 elif mode == "cls_attn":
                     x = select_tokens(x, cls_row[:, :, npre:].mean(1).float(), n_keep, npre)
+                elif mode == "cls_attn_low":
+                    x = select_tokens(x, -cls_row[:, :, npre:].mean(1).float(), n_keep, npre)
+                elif mode == "cls_attn_fuse":
+                    x = select_tokens_fuse(x, cls_row[:, :, npre:].mean(1).float(), n_keep, npre)
                 else:
                     x = select_tokens(x, torch.rand(x.shape[0], n_patch, device=x.device), n_keep, npre)
                 x = x + blk.drop_path2(blk.ls2(blk.mlp(blk.norm2(x))))

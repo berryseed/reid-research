@@ -51,6 +51,10 @@ def get_args():
     p.add_argument("--sd-mode", choices=MODES, default="none", help="token reduction in the distilled pass")
     p.add_argument("--sd-keep", default="random", help="keep ratio per reduction layer, or 'random'")
     p.add_argument("--sd-weight", type=float, default=1.0)
+    p.add_argument("--sd-bn", choices=("shared", "nostat"), default="shared",
+                   help="BNNeck in the reduced pass: 'shared' also updates the running statistics (original "
+                        "behaviour); 'nostat' normalises with batch statistics but leaves the running "
+                        "statistics to the full-token pass only")
     p.add_argument("--eval-every", type=int, default=20)
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--seed", type=int, default=0)
@@ -120,7 +124,8 @@ def main():
     if args.resume and os.path.exists(ckpt_path):
         # our own file; weights_only=False is needed for the Python/NumPy RNG states
         ck = torch.load(ckpt_path, map_location="cpu", weights_only=False)
-        for k in ("model", "lr", "epochs", "P", "K", "seed", "sd_mode", "train_mode", "id_fraction"):
+        for k in ("model", "lr", "epochs", "P", "K", "seed", "sd_mode", "train_mode", "id_fraction",
+                  "sd_weight", "sd_bn", "sd_keep", "train_keep"):
             if ck["args"].get(k) != vars(args).get(k):
                 raise ValueError(f"--{k} differs from the checkpoint ({ck['args'].get(k)} vs {vars(args).get(k)})")
         model.load_state_dict(ck["model"])
@@ -151,7 +156,11 @@ def main():
                 l_sd = torch.zeros((), device=device)
                 if use_sd:
                     keep = random.choice(SD_KEEPS) if args.sd_keep == "random" else float(args.sd_keep)
+                    bn_mom = model.bnneck.momentum
+                    if args.sd_bn == "nostat":
+                        model.bnneck.momentum = 0.0  # running stats unchanged by this pass
                     feat_s, bn_s, logits_s = model(imgs, args.sd_mode, keep)
+                    model.bnneck.momentum = bn_mom
                     l_id_s = F.cross_entropy(logits_s.float(), labels, label_smoothing=args.label_smooth)
                     l_tri_s = batch_hard_triplet(feat_s, labels, args.margin)
                     # the reduced-token embedding is pulled onto the (detached) full-token embedding
