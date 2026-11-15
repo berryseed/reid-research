@@ -21,6 +21,30 @@ Current state and history: `PROGRESS_LOG.md` — **read it first and append to i
 - Keep `PROGRESS.md` (status summary: completed, results, remaining, known issues) and `PROGRESS_LOG.md`
   (chronological detail: exact commands, full tables) updated.
 
+## Autonomy (standing instructions from the user, 2026-11-15; apply to every session)
+On resume: read CLAUDE.md, PROJECT_CONTEXT.md, PROGRESS.md, experiment logs and saved checkpoints first.
+- Restore the latest valid training checkpoint and continue; do not repeat completed work.
+- Work autonomously until all remaining research objectives and experiments are completed.
+- Do not wait for approval between routine tasks, experiments, implementation stages or debugging steps.
+- Make reasonable technical decisions independently and document the reasoning (PROGRESS_LOG.md).
+- Run the necessary terminal commands, install required project dependencies, modify code, run experiments.
+- Monitor training progress, GPU utilisation, VRAM use and estimated completion times.
+- Investigate errors, implement fixes and retry failed operations where appropriate.
+- Save resumable model checkpoints regularly.
+- Evaluate results objectively against the baseline. Do not fabricate results or selectively exclude
+  unsuccessful experiments.
+- Update PROGRESS.md continuously. Commit and push after every meaningful milestone.
+- Preserve existing checkpoints, datasets and successful experimental results.
+- Work within the hardware resources of the RTX 5080.
+- Do not stop merely to summarise progress or to ask whether to proceed; continue to the next pending task.
+- Stop and ask only for a genuine blocker: credentials, payment, destructive operations, elevated system
+  permissions, or a major change to the research objective.
+- When all tasks are complete, write a comprehensive final report: methodology, experimental results,
+  comparisons, limitations, conclusions, potential research contributions.
+- Interpretation (Claude's, not stated by the user): the earlier rule "downloading new datasets needs the
+  user's explicit OK" still stands, because these instructions do not mention datasets and several re-ID
+  datasets need a signed agreement. Dataset-dependent tasks are deferred and listed, not silently skipped.
+
 ## Version control (standing instructions from the user, 2026-11-14)
 - Git repo in this folder; private GitHub remote `origin`. The user authorised ongoing commits and pushes.
 - Create a checkpoint commit (and push) **before** major code or architecture changes.
