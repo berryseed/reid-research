@@ -1,8 +1,8 @@
 # First research-iteration report: cheap queries against a full-cost gallery in ViT person re-ID
 
-**Status: DRAFT, 2026-11-16 21:30.** All accuracy results are complete 3-seed results. Still missing:
-measured latency of low-resolution and gradual-merge queries (Section 6.6), a second dataset and a second
-backbone (Section 7). One dataset (Market-1501) and one backbone (ViT-S/16) throughout.
+**Status: first-iteration report, 2026-11-16.** Accuracy results are 3-seed results on Market-1501 with
+ViT-S/16; latency is measured. Not done: a second dataset, a full second backbone (one ViT-B seed, Section
+6.7), re-implemented prior-work baselines (Section 7).
 Sources of every number: `PROGRESS.md`, `PROGRESS_LOG.md`, `runs/*/mech.csv`, `runs/*/sweep.csv`.
 
 ## 1. Problem and thesis
@@ -63,7 +63,10 @@ Not found in the texts read (about 25 searches; absence of evidence, not proof o
   full cost, and measured latency rather than FLOPs alone.
 
 The gap is narrow. It is the SFSC / asymmetric-retrieval problem with a different elastic dimension, plus an
-honest cost account. It would be judged incremental unless the token or resolution knob proves better than
+honest cost account. Our own measurements narrow it further: on Market-1501 the resolution knob, which
+Suma and Tolias already study, beats the token-merging knob in both accuracy and measured speed (Section
+6.6). What remains specific to this work is a single set of weights compatible under several budgets and
+both knobs, for re-ID, with its costs measured. It would be judged incremental unless the token or resolution knob proves better than
 width at equal cost, or the mechanism findings (Section 6.2) carry over to other datasets.
 
 ## 4. Methodology
@@ -224,19 +227,39 @@ families), with its full-cost deficit as the main open problem.
 - **Two-pass training as a low-data regulariser (H3):** not supported. With 10 / 25 / 50 % of the identities
   the probe is 2.2 / 0.9 / 0.9 mAP below the baseline at full cost (3 seeds).
 
-### 6.6 Measured efficiency — PARTLY PENDING
-Forward pass only, ViT-S 256x128, idle machine, RTX 5080 (mixed precision) and Ryzen 7 7800X3D (8 threads):
+### 6.6 Measured efficiency
+Forward pass only, random input, ViT-S, RTX 5080 (mixed precision) and Ryzen 7 7800X3D (8 threads, fp32),
+machine otherwise idle, median over repeated runs after warm-up. Source: `runs/latency_extra.csv`
+(2026-11-16). Low-resolution rows include the image resize and the resampling of the position embedding.
+mAP column: `sp_mixed`, asymmetric, 3 seeds (Section 6.4).
 
-| Setting | GFLOPs | GPU batch 1, ms | GPU batch 256, ms/image | CPU batch 1, ms | CPU batch 8, ms/image |
-| --- | --- | --- | --- | --- | --- |
-| full tokens | 2.93 | 6.00 | 0.111 | 16.3 | 11.1 |
-| 3-stage merge 0.7 | 1.92 | 8.47 | 0.077 | 13.6 | 7.35 |
-| 3-stage merge 0.5 | 1.46 | 8.55 | 0.062 | 11.9 | 6.23 |
-| 3-stage random drop 0.5 | 1.46 | 6.59 | 0.058 | 11.0 | 5.52 |
+| Query setting | GFLOPs | GPU batch 1, ms | GPU batch 256, ms/image | CPU batch 1, ms | CPU batch 8, ms/image | mAP (`sp_mixed`) |
+| --- | --- | --- | --- | --- | --- | --- |
+| full tokens | 2.93 | 6.04 | 0.112 | 17.9 | 12.9 | 83.95 |
+| 3-stage merge 0.5 | 1.46 | 8.70 | 0.067 | 13.4 | 7.28 | 79.34 |
+| gradual ToMe r = 7 | 1.94 | 13.6 | 0.095 | 18.1 | 9.77 | 83.70 |
+| gradual ToMe r = 11 | 1.41 | 13.9 | 0.073 | 15.6 | 7.52 | 82.38 |
+| low-resolution 224x112 | 2.22 | 6.13 | 0.080 | 15.1 | 10.1 | 83.91 |
+| low-resolution 192x96 | 1.62 | 6.16 | 0.058 | 13.0 | 7.56 | 83.60 |
+| low-resolution 160x80 | 1.12 | 6.16 | 0.042 | 10.6 | 5.49 | 83.01 |
+| low-resolution 128x64 | 0.72 | 6.16 | 0.029 | 8.87 | 3.78 | 81.50 |
 
-A 2.0x cut in GFLOPs gives 1.78x throughput at GPU batch 256 and CPU batch 8, 1.37x at CPU batch 1, and a
-**slowdown** at GPU batch 1 (the matching step of merging costs more than the tokens it saves). Timing of
-gradual merging and low-resolution queries, the two settings this report leans on, is not yet measured.
+Speed-up over full tokens: gradual ToMe r = 11 gives 1.54x at GPU batch 256, 1.15x at CPU batch 1, 1.72x at CPU
+batch 8, and is **2.3 times slower at GPU batch 1**. Low resolution 160x80 gives 2.67x, 1.69x and 2.35x, and no
+change at GPU batch 1. CPU timings in this file are 10-15 % slower than in the earlier `runs/latency.csv`
+(different session), so comparisons should stay within one file.
+
+Reading:
+1. **GFLOPs do not predict latency.** A single image on the GPU costs about 6 ms whatever its token count: the
+   time is fixed overhead. Savings appear only where arithmetic is the bottleneck (large batches, CPU).
+2. **Token merging has its own cost.** The matching step runs in every block, which more than doubles
+   single-image GPU latency and cancels most of the saving at CPU batch 1.
+3. **On Market-1501, resolution is the better knob on both axes.** At similar analytic cost, a 192x96 query is
+   faster than gradual merging with r = 11 in three of the four regimes (equal at CPU batch 8) and more accurate
+   (83.60 vs 82.38 mAP). At 160x80 it is faster in all four and still more accurate (83.01).
+4. For the thesis (accuracy per unit of compute), the practical operating points of the mixed model are
+   low-resolution queries: 83.0 mAP at 2.4-2.7x the throughput, or 81.5 mAP at 3.4-3.9x. Whether merging earns
+   a place depends on data where downsizing removes real detail, which this dataset cannot test (Section 7).
 
 ## 7. Limitations
 
@@ -263,15 +286,19 @@ gradual merging and low-resolution queries, the two settings this report leans o
    which is 0.8 to 4.1 mAP above the equal-GPU-hour baseline with a linear map in that range, at the price of
    1.2 mAP at full cost. Training on one knob alone does not give compatibility on the other (3 seeds,
    Market-1501 only).
-4. Negative results worth reporting: no low-data regularisation effect; class-attention token selection worse
-   than random for cross-budget matching.
+4. Measured latency changes the ranking of the knobs. Low-resolution queries give 1.7-3.9x throughput on CPU
+   and at large GPU batch with 81.5-83.6 mAP; gradual merging is slower and less accurate at similar analytic
+   cost, and 2.3 times slower than full tokens for a single image on the GPU. No setting reduces single-image
+   GPU latency.
+5. Negative results worth reporting: the first method lost to an equal-budget baseline; no low-data
+   regularisation effect; class-attention token selection worse than random for cross-budget matching;
+   merging dominated by resolution on this dataset.
 
 ## 9. Next steps
 
-1. Time the cheap-query settings on an idle machine (Section 6.6).
-2. Second dataset (blocked on sign-up).
-3. Frozen-gallery student (Suma and Tolias style) as a baseline that has no full-cost deficit.
-4. Gradient-conflict diagnostic; separate-classifier control; ViT-B reference.
+1. Second dataset with higher native resolution (blocked on sign-up). It decides whether merging has a role.
+2. Frozen-gallery student (Suma and Tolias style) as a baseline that has no full-cost deficit.
+3. Gradient-conflict diagnostic; separate-classifier control; more ViT-B seeds and `sp_mixed` on ViT-B.
 
 ## Reproduction
 Commands and per-run tables: `PROGRESS_LOG.md`. Queues: `run_iter1b.sh`, `run_iter2.sh`, `run_iter3.sh`.
