@@ -134,3 +134,16 @@ pushed sp_mixed_s2
 epoch 120/120 loss 1.024 id 1.023 tri 0.001 sd 0.000 | 29.7 min | mAP 86.4 R1 94.0
 done. train time 0.50 h, checkpoint: runs/vitb_base_s0\last.pth
 === sweep vitb_base_s0 Mon Nov 16 21:40:36 BST 2026
+pushed vitb_base_s0
+=== train vitb_tbsd_s0 Mon Nov 16 21:44:18 BST 2026
+FAILED train vitb_tbsd_s0 (rc 1)
+  File "C:\Users\user\reid-research\.venv\Lib\site-packages\torch\storage.py", line 421, in _new_shared
+    return cls._new_using_filename_cpu(size)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+RuntimeError: Couldn't open shared file mapping: <torch_16464_4170645031_0>, error code: <1455>
+
+=== all done Mon Nov 16 22:11:59 BST 2026
+=== resume vitb_tbsd_s0 --workers 2 (by hand, after error 1455) Mon Nov 16 22:14:02 BST 2026
+epoch 120/120 loss 2.049 id 1.017 tri 0.001 sd 0.013 | 47.5 min | mAP 83.7 R1 93.0
+done. train time 0.79 h, checkpoint: runs/vitb_tbsd_s0\last.pth
+rc 0 Mon Nov 16 22:42:41 BST 2026

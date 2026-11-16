@@ -4,15 +4,23 @@ Current state at a glance. Detailed chronological record with exact commands and
 `PROGRESS_LOG.md`. Background, decisions and literature: `PROJECT_CONTEXT.md`.
 All numbers are Market-1501, ViT-S/16 (ImageNet-21k->1k augreg weights), 256x128, 120 epochs, unless stated.
 
-_Last updated: 2026-11-16 ~19:45 local (session 3, resumed after the shutdown)._
+_Last updated: 2026-11-16 22:45 local (end of session 3)._
 
-## Current status: RUNNING (phase D since 2026-11-16 21:05: `vitb_base_s0`, then `vitb_tbsd_s0`, ViT-B latency).
-- **Phase E complete (21:05): all 9 second-pass runs, 3 seeds each, evaluated and pushed.** Final table below.
-- Session 3: Suma and Tolias read in full (LITERATURE_MATRIX.md A5; candidate C1 is prior work, now a
-  baseline); `bench_latency.py --extra` written; report `REPORT_ITERATION1.md` updated with the 3-seed results.
-- Still to do for the report: clean latency run of low-resolution / gradual-merge queries
-  (`.venv/Scripts/python.exe bench_latency.py --extra --out runs/latency_extra.csv`, only when nothing else uses
-  the GPU, i.e. after phase D); ViT-B numbers as a second-backbone note; final pass.
+## Current status: IDLE (2026-11-16 22:45). Queue `run_iter3.sh` finished; nothing is running. First-iteration report written.
+- **Report: `REPORT_ITERATION1.md`** (paper comparison, gap, method, 3-seed evaluation, latency, ViT-B, limitations).
+- Phase E complete: 9 second-pass runs. Phase D complete: `vitb_base_s0` 86.38 mAP; `vitb_tbsd_s0` 83.68 (failed
+  once on Windows error 1455 = system memory at the epoch-60 evaluation; resumed with `--workers 2`).
+  **Use `--workers 2` for ViT-B runs on this machine.**
+- Latency measured on the idle machine: `runs/latency_extra.csv` (ViT-S, incl. low-res and gradual merge),
+  `runs/latency_vitb.csv`.
+- **Main conclusions of iteration 1** (Market-1501, ViT-S, 3 seeds): `sp_mixed` is compatible under both knobs
+  (83.0 mAP at 1.12 G, 82.4 at 1.41 G) and beats the equal-GPU-hour baseline + linear map by +0.8 to +4.1 below
+  1.7 GFLOPs, but is 1.16 below it at full tokens. Low-resolution queries beat gradual merging in accuracy and in
+  measured speed; merging is 2.3x slower than full tokens at GPU batch 1. ViT-B (1 seed): TBSD full-token deficit
+  2.7 mAP; ViT-B is worse than ViT-S per GFLOP. ViT-S stays the main backbone.
+- **Next (needs the user):** second dataset sign-up (CUHK03). **Next (no input needed):** frozen-gallery student
+  baseline (Suma and Tolias style); gradient-conflict diagnostic; separate-classifier control; `sp_mixed` on
+  ViT-B; second-tier literature reads.
 - The state table below describes the pause of 2026-11-16 01:00 and is kept as history.
 - **Research direction (user, 2026-11-15):** TBSD is an exploratory probe, not the contribution. Priorities:
   full-read literature review, gap reassessment, mechanism, own methodology. See `LITERATURE_MATRIX.md`,

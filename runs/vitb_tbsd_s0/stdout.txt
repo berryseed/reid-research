@@ -1,0 +1,174 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+device=cuda ids=751 train_images=12936 steps/epoch=202 sd=True
+epoch   1/120 loss 14.540 id 6.355 tri 0.856 sd 0.065 | 0.6 min
+epoch   2/120 loss 10.055 id 4.767 tri 0.217 sd 0.030 | 1.0 min
+epoch   3/120 loss 6.068 id 2.859 tri 0.114 sd 0.030 | 1.4 min
+epoch   4/120 loss 4.057 id 1.879 tri 0.089 sd 0.031 | 1.8 min
+epoch   5/120 loss 3.421 id 1.575 tri 0.075 sd 0.037 | 2.2 min
+epoch   6/120 loss 3.110 id 1.443 tri 0.060 sd 0.037 | 2.6 min
+epoch   7/120 loss 2.839 id 1.334 tri 0.046 sd 0.035 | 3.0 min
+epoch   8/120 loss 2.707 id 1.276 tri 0.035 sd 0.040 | 3.4 min
+epoch   9/120 loss 2.566 id 1.224 tri 0.026 sd 0.034 | 3.8 min
+epoch  10/120 loss 2.514 id 1.204 tri 0.023 sd 0.035 | 4.2 min
+epoch  11/120 loss 2.463 id 1.183 tri 0.019 sd 0.034 | 4.6 min
+epoch  12/120 loss 2.440 id 1.173 tri 0.018 sd 0.035 | 5.0 min
+epoch  13/120 loss 2.378 id 1.148 tri 0.014 sd 0.034 | 5.4 min
+epoch  14/120 loss 2.337 id 1.136 tri 0.011 sd 0.029 | 5.8 min
+epoch  15/120 loss 2.328 id 1.130 tri 0.012 sd 0.030 | 6.2 min
+epoch  16/120 loss 2.312 id 1.123 tri 0.010 sd 0.030 | 6.6 min
+epoch  17/120 loss 2.304 id 1.120 tri 0.010 sd 0.030 | 7.0 min
+epoch  18/120 loss 2.291 id 1.110 tri 0.010 sd 0.034 | 7.4 min
+epoch  19/120 loss 2.265 id 1.106 tri 0.008 sd 0.028 | 7.8 min
+epoch  20/120 loss 2.251 id 1.098 tri 0.008 sd 0.029 | 8.3 min | mAP 79.7 R1 91.1
+epoch  21/120 loss 2.243 id 1.095 tri 0.007 sd 0.029 | 8.6 min
+epoch  22/120 loss 2.233 id 1.090 tri 0.006 sd 0.029 | 9.1 min
+epoch  23/120 loss 2.213 id 1.084 tri 0.005 sd 0.027 | 9.5 min
+epoch  24/120 loss 2.229 id 1.088 tri 0.007 sd 0.028 | 9.9 min
+epoch  25/120 loss 2.199 id 1.079 tri 0.006 sd 0.022 | 10.3 min
+epoch  26/120 loss 2.198 id 1.076 tri 0.004 sd 0.027 | 10.7 min
+epoch  27/120 loss 2.178 id 1.070 tri 0.004 sd 0.024 | 11.1 min
+epoch  28/120 loss 2.177 id 1.070 tri 0.004 sd 0.024 | 11.5 min
+epoch  29/120 loss 2.172 id 1.065 tri 0.003 sd 0.027 | 11.9 min
+epoch  30/120 loss 2.164 id 1.064 tri 0.003 sd 0.023 | 12.3 min
+epoch  31/120 loss 2.161 id 1.063 tri 0.003 sd 0.022 | 12.7 min
+epoch  32/120 loss 2.168 id 1.064 tri 0.004 sd 0.024 | 13.1 min
+epoch  33/120 loss 2.156 id 1.060 tri 0.003 sd 0.024 | 13.5 min
+epoch  34/120 loss 2.153 id 1.059 tri 0.004 sd 0.020 | 13.9 min
+epoch  35/120 loss 2.145 id 1.056 tri 0.002 sd 0.022 | 14.3 min
+epoch  36/120 loss 2.147 id 1.056 tri 0.003 sd 0.024 | 14.7 min
+epoch  37/120 loss 2.133 id 1.052 tri 0.003 sd 0.020 | 15.1 min
+epoch  38/120 loss 2.129 id 1.050 tri 0.002 sd 0.022 | 15.5 min
+epoch  39/120 loss 2.131 id 1.050 tri 0.003 sd 0.021 | 15.9 min
+epoch  40/120 loss 2.132 id 1.050 tri 0.003 sd 0.021 | 16.3 min | mAP 81.9 R1 92.4
+epoch  41/120 loss 2.121 id 1.048 tri 0.002 sd 0.018 | 16.7 min
+epoch  42/120 loss 2.119 id 1.046 tri 0.002 sd 0.018 | 17.1 min
+epoch  43/120 loss 2.121 id 1.046 tri 0.002 sd 0.020 | 17.5 min
+epoch  44/120 loss 2.118 id 1.046 tri 0.002 sd 0.018 | 17.9 min
+epoch  45/120 loss 2.115 id 1.043 tri 0.003 sd 0.020 | 18.3 min
+epoch  46/120 loss 2.115 id 1.044 tri 0.002 sd 0.020 | 18.7 min
+epoch  47/120 loss 2.108 id 1.040 tri 0.002 sd 0.020 | 19.1 min
+epoch  48/120 loss 2.100 id 1.038 tri 0.001 sd 0.018 | 19.5 min
+epoch  49/120 loss 2.101 id 1.038 tri 0.002 sd 0.018 | 19.9 min
+epoch  50/120 loss 2.094 id 1.036 tri 0.001 sd 0.016 | 20.3 min
+epoch  51/120 loss 2.098 id 1.036 tri 0.002 sd 0.019 | 20.7 min
+epoch  52/120 loss 2.104 id 1.039 tri 0.002 sd 0.019 | 21.1 min
+epoch  53/120 loss 2.091 id 1.035 tri 0.002 sd 0.015 | 21.5 min
+epoch  54/120 loss 2.094 id 1.036 tri 0.002 sd 0.015 | 21.9 min
+epoch  55/120 loss 2.090 id 1.033 tri 0.001 sd 0.018 | 22.3 min
+epoch  56/120 loss 2.084 id 1.032 tri 0.001 sd 0.016 | 22.7 min
+epoch  57/120 loss 2.090 id 1.033 tri 0.001 sd 0.018 | 23.0 min
+epoch  58/120 loss 2.086 id 1.032 tri 0.001 sd 0.017 | 23.4 min
+epoch  59/120 loss 2.082 id 1.031 tri 0.001 sd 0.014 | 23.8 min
+Traceback (most recent call last):
+  File "C:\Users\user\reid-research\train.py", line 235, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\user\reid-research\train.py", line 197, in main
+    qf, qp, qc = extract_features(model, q_loader, device, amp=amp)
+                 ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\reid-research\.venv\Lib\site-packages\torch\utils\_contextlib.py", line 158, in no_grad
+    return func(*args, **kwargs)
+  File "C:\Users\user\reid-research\common.py", line 359, in extract_features
+    for imgs, pid, cam in loader:
+                          ^^^^^^
+  File "C:\Users\user\reid-research\.venv\Lib\site-packages\torch\utils\data\dataloader.py", line 725, in __next__
+    data = self._next_data()
+  File "C:\Users\user\reid-research\.venv\Lib\site-packages\torch\utils\data\dataloader.py", line 1531, in _next_data
+    return self._process_data(data, worker_id)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\reid-research\.venv\Lib\site-packages\torch\utils\data\dataloader.py", line 1569, in _process_data
+    data.reraise()
+    ~~~~~~~~~~~~^^
+  File "C:\Users\user\reid-research\.venv\Lib\site-packages\torch\_utils.py", line 804, in reraise
+    raise exception
+RuntimeError: Caught RuntimeError in DataLoader worker process 0.
+Original Traceback (most recent call last):
+  File "C:\Users\user\reid-research\.venv\Lib\site-packages\torch\utils\data\_utils\worker.py", line 375, in _worker_loop
+    data = fetcher.fetch(index)  # type: ignore[possibly-undefined]
+  File "C:\Users\user\reid-research\.venv\Lib\site-packages\torch\utils\data\_utils\fetch.py", line 57, in fetch
+    return self.collate_fn(data)
+           ~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\user\reid-research\.venv\Lib\site-packages\torch\utils\data\_utils\collate.py", line 401, in default_collate
+    return collate(batch, collate_fn_map=default_collate_fn_map)
+  File "C:\Users\user\reid-research\.venv\Lib\site-packages\torch\utils\data\_utils\collate.py", line 215, in collate
+    collate(samples, collate_fn_map=collate_fn_map)
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\reid-research\.venv\Lib\site-packages\torch\utils\data\_utils\collate.py", line 155, in collate
+    return collate_fn_map[elem_type](batch, collate_fn_map=collate_fn_map)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\user\reid-research\.venv\Lib\site-packages\torch\utils\data\_utils\collate.py", line 273, in collate_tensor_fn
+    storage = elem._typed_storage()._new_shared(numel, device=elem.device)
+  File "C:\Users\user\reid-research\.venv\Lib\site-packages\torch\storage.py", line 1220, in _new_shared
+    untyped_storage = torch.UntypedStorage._new_shared(
+        size * self._element_size(), device=device
+    )
+  File "C:\Users\user\reid-research\.venv\Lib\site-packages\torch\storage.py", line 421, in _new_shared
+    return cls._new_using_filename_cpu(size)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+RuntimeError: Couldn't open shared file mapping: <torch_16464_4170645031_0>, error code: <1455>
+
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+device=cuda ids=751 train_images=12936 steps/epoch=202 sd=True
+resumed from runs/vitb_tbsd_s0\ckpt.pth: epoch 59 done, step 11918, 0.40 h trained
+epoch  60/120 loss 2.084 id 1.031 tri 0.002 sd 0.015 | 24.3 min | mAP 83.0 R1 92.6
+epoch  61/120 loss 2.080 id 1.030 tri 0.001 sd 0.016 | 24.7 min
+epoch  62/120 loss 2.081 id 1.030 tri 0.002 sd 0.016 | 25.1 min
+epoch  63/120 loss 2.078 id 1.029 tri 0.001 sd 0.015 | 25.5 min
+epoch  64/120 loss 2.074 id 1.028 tri 0.001 sd 0.014 | 25.8 min
+epoch  65/120 loss 2.071 id 1.027 tri 0.001 sd 0.012 | 26.2 min
+epoch  66/120 loss 2.073 id 1.028 tri 0.001 sd 0.013 | 26.6 min
+epoch  67/120 loss 2.072 id 1.026 tri 0.001 sd 0.016 | 27.0 min
+epoch  68/120 loss 2.072 id 1.027 tri 0.001 sd 0.014 | 27.4 min
+epoch  69/120 loss 2.070 id 1.027 tri 0.001 sd 0.012 | 27.8 min
+epoch  70/120 loss 2.072 id 1.026 tri 0.001 sd 0.015 | 28.2 min
+epoch  71/120 loss 2.068 id 1.025 tri 0.001 sd 0.014 | 28.6 min
+epoch  72/120 loss 2.068 id 1.024 tri 0.001 sd 0.015 | 28.9 min
+epoch  73/120 loss 2.066 id 1.024 tri 0.001 sd 0.015 | 29.3 min
+epoch  74/120 loss 2.063 id 1.023 tri 0.001 sd 0.014 | 29.7 min
+epoch  75/120 loss 2.062 id 1.023 tri 0.000 sd 0.014 | 30.1 min
+epoch  76/120 loss 2.062 id 1.023 tri 0.000 sd 0.014 | 30.5 min
+epoch  77/120 loss 2.064 id 1.023 tri 0.000 sd 0.014 | 30.9 min
+epoch  78/120 loss 2.060 id 1.021 tri 0.000 sd 0.014 | 31.2 min
+epoch  79/120 loss 2.063 id 1.022 tri 0.001 sd 0.015 | 31.6 min
+epoch  80/120 loss 2.061 id 1.021 tri 0.001 sd 0.015 | 32.0 min | mAP 83.4 R1 93.1
+epoch  81/120 loss 2.058 id 1.022 tri 0.001 sd 0.011 | 32.4 min
+epoch  82/120 loss 2.059 id 1.021 tri 0.001 sd 0.013 | 32.8 min
+epoch  83/120 loss 2.058 id 1.020 tri 0.000 sd 0.014 | 33.2 min
+epoch  84/120 loss 2.055 id 1.020 tri 0.000 sd 0.013 | 33.6 min
+epoch  85/120 loss 2.057 id 1.020 tri 0.001 sd 0.014 | 34.0 min
+epoch  86/120 loss 2.056 id 1.020 tri 0.001 sd 0.012 | 34.3 min
+epoch  87/120 loss 2.057 id 1.020 tri 0.001 sd 0.014 | 34.7 min
+epoch  88/120 loss 2.054 id 1.020 tri 0.000 sd 0.013 | 35.1 min
+epoch  89/120 loss 2.057 id 1.019 tri 0.001 sd 0.014 | 35.5 min
+epoch  90/120 loss 2.055 id 1.019 tri 0.000 sd 0.013 | 35.9 min
+epoch  91/120 loss 2.056 id 1.019 tri 0.001 sd 0.013 | 36.3 min
+epoch  92/120 loss 2.054 id 1.019 tri 0.000 sd 0.013 | 36.7 min
+epoch  93/120 loss 2.052 id 1.019 tri 0.001 sd 0.011 | 37.1 min
+epoch  94/120 loss 2.053 id 1.019 tri 0.001 sd 0.012 | 37.4 min
+epoch  95/120 loss 2.054 id 1.019 tri 0.000 sd 0.014 | 37.8 min
+epoch  96/120 loss 2.055 id 1.019 tri 0.001 sd 0.014 | 38.2 min
+epoch  97/120 loss 2.053 id 1.018 tri 0.001 sd 0.013 | 38.6 min
+epoch  98/120 loss 2.050 id 1.018 tri 0.000 sd 0.012 | 39.0 min
+epoch  99/120 loss 2.050 id 1.017 tri 0.001 sd 0.013 | 39.4 min
+epoch 100/120 loss 2.051 id 1.018 tri 0.001 sd 0.011 | 39.8 min | mAP 83.7 R1 92.9
+epoch 101/120 loss 2.051 id 1.018 tri 0.001 sd 0.012 | 40.2 min
+epoch 102/120 loss 2.052 id 1.018 tri 0.001 sd 0.013 | 40.6 min
+epoch 103/120 loss 2.049 id 1.018 tri 0.000 sd 0.012 | 40.9 min
+epoch 104/120 loss 2.049 id 1.018 tri 0.001 sd 0.011 | 41.3 min
+epoch 105/120 loss 2.046 id 1.018 tri 0.000 sd 0.010 | 41.7 min
+epoch 106/120 loss 2.051 id 1.018 tri 0.001 sd 0.013 | 42.1 min
+epoch 107/120 loss 2.050 id 1.018 tri 0.000 sd 0.013 | 42.5 min
+epoch 108/120 loss 2.045 id 1.017 tri 0.000 sd 0.010 | 42.9 min
+epoch 109/120 loss 2.051 id 1.018 tri 0.001 sd 0.012 | 43.3 min
+epoch 110/120 loss 2.048 id 1.017 tri 0.000 sd 0.012 | 43.7 min
+epoch 111/120 loss 2.048 id 1.017 tri 0.000 sd 0.011 | 44.1 min
+epoch 112/120 loss 2.047 id 1.017 tri 0.000 sd 0.011 | 44.4 min
+epoch 113/120 loss 2.049 id 1.017 tri 0.000 sd 0.013 | 44.8 min
+epoch 114/120 loss 2.049 id 1.017 tri 0.001 sd 0.012 | 45.2 min
+epoch 115/120 loss 2.047 id 1.017 tri 0.000 sd 0.011 | 45.6 min
+epoch 116/120 loss 2.047 id 1.017 tri 0.001 sd 0.011 | 46.0 min
+epoch 117/120 loss 2.047 id 1.017 tri 0.001 sd 0.010 | 46.4 min
+epoch 118/120 loss 2.051 id 1.018 tri 0.001 sd 0.013 | 46.8 min
+epoch 119/120 loss 2.047 id 1.017 tri 0.000 sd 0.012 | 47.1 min
+epoch 120/120 loss 2.049 id 1.017 tri 0.001 sd 0.013 | 47.5 min | mAP 83.7 R1 93.0
+done. train time 0.79 h, checkpoint: runs/vitb_tbsd_s0\last.pth

@@ -261,20 +261,50 @@ Reading:
    low-resolution queries: 83.0 mAP at 2.4-2.7x the throughput, or 81.5 mAP at 3.4-3.9x. Whether merging earns
    a place depends on data where downsizing removes real detail, which this dataset cannot test (Section 7).
 
+### 6.7 Second backbone: ViT-B/16, one seed (indicative only)
+Same recipe as ViT-S, seed 0, 3-stage merging, asymmetric mAP against the full-token gallery of the same model.
+Source: `runs/vitb_base_s0/sweep.csv`, `runs/vitb_tbsd_s0/sweep.csv`, `runs/latency_vitb.csv`.
+
+| Keep ratio | GFLOPs | ViT-B baseline | ViT-B TBSD probe |
+| --- | --- | --- | --- |
+| 1.0 | 11.34 | 86.38 | 83.68 |
+| 0.9 | 9.91 | 86.20 | 83.69 |
+| 0.8 | 8.59 | 85.61 | 83.66 |
+| 0.7 | 7.44 | 84.52 | 83.54 |
+| 0.6 | 6.50 | 81.94 | 83.29 |
+| 0.5 | 5.65 | 71.51 | 82.37 |
+
+Training time 0.50 GPU-hours (baseline) and 0.79 (probe). No equal-GPU-hour ViT-B baseline was run. The probe
+run stopped once on a system-memory error after epoch 59 and was resumed from its checkpoint with 2 data-loader
+workers instead of 4. Latency of the full ViT-B: 6.16 ms at GPU batch 1 (the same as ViT-S), 0.328 ms/image at
+GPU batch 256, 60.5 ms at CPU batch 1.
+
+Reading (one seed; none of this is a result yet):
+1. The two qualitative effects carry over: the ordinary model collapses under abrupt token reduction
+   (86.4 to 71.5), and two-pass training flattens the curve (83.7 to 82.4).
+2. The full-token deficit is much larger than on ViT-S: 2.7 mAP against 0.5. The probe is ahead only at keep 0.6
+   and below. Cause not investigated (the recipe was tuned on ViT-S).
+3. In accuracy per unit of compute ViT-B is not competitive here: the probe at keep 0.5 gives 82.4 mAP at 5.65
+   GFLOPs, whereas an ordinary ViT-S at full tokens gives 84.45 at 2.93. The ViT-B baseline buys +1.9 mAP over
+   ViT-S for 3.9 times the GFLOPs. ViT-S stays the main backbone.
+4. The mixed variant (Section 6.4) has not been run on ViT-B.
+
 ## 7. Limitations
 
 1. **One dataset.** Market-1501 crops are natively 128x64 and are upsampled to 256x128, so low-resolution
    queries lose little real information. The resolution results may not transfer. A second dataset with higher
    native resolution (CUHK03-NP preferred) is required and needs the author's own sign-up.
-2. **One backbone** (ViT-S/16). A ViT-B/16 reference run is queued.
-3. **Full-cost deficit.** Every two-pass variant so far is below the equal-GPU-hour baseline at full tokens.
+2. **One backbone with seeds** (ViT-S/16). ViT-B/16 has one seed, only the baseline and the TBSD probe, and no
+   equal-GPU-hour baseline (Section 6.7).
+3. **Full-cost deficit.** Every two-pass variant is below the equal-GPU-hour baseline at full tokens (0.8-2.0
+   mAP on ViT-S; 2.7 mAP below the 120-epoch baseline on ViT-B, one seed).
 4. **Narrow novelty** (Section 3). Several prior-work entries are at abstract depth.
 5. **No comparison with a re-implemented SFSC, D3still or frozen-teacher (Suma and Tolias) baseline**, and none
    with a small CNN at equal query cost.
 6. GFLOPs are analytic estimates; the class-attention result is unexplained; gradient conflict between the two
    passes has not been measured.
 
-## 8. Conclusions and potential contributions (one dataset, one backbone)
+## 8. Conclusions and potential contributions (one dataset; ViT-S unless stated)
 
 1. In ViT re-ID, the cost of a cheap query depends more on *where and how* tokens are removed than on how many:
    early, abrupt reduction is expensive; gradual merging and lower resolution are far cheaper in accuracy.

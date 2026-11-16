@@ -561,3 +561,49 @@ stays compatible with its full-token gallery?
    which has no deficit by construction but needs a second set of weights.
 
 **Decision.** The method carried into the report is the mixed variant.
+
+## 6.5 Measured latency of the cheap-query settings (E14)
+**Question.** GFLOPs count multiplications. Do low-resolution and gradual-merge queries actually run faster?
+**How.** `bench_latency.py --extra`: forward pass on random input, median over repeated runs after warm-up; GPU
+with mixed precision at batch 1 (one query at a time) and batch 256 (throughput); CPU at batch 1 and 8.
+Run once, with nothing else on the machine.
+**Expectation recorded before the run:** low resolution faster everywhere; gradual merging faster at large
+batch and on CPU but slower at GPU batch 1.
+**Result.** Half met. Low resolution is faster wherever arithmetic is the bottleneck (160x80: 2.67x at GPU batch
+256, 1.69x at CPU batch 1) and unchanged at GPU batch 1, where one image costs about 6 ms whatever its size.
+Gradual merging (r = 11) is 1.54x faster at GPU batch 256 and 2.3x **slower** at GPU batch 1 (13.9 ms).
+**Why merging is slow for one image.** Each block computes a similarity matrix between two halves of the
+tokens, picks the best partner for each, and scatters the merged tokens into a new tensor. For a single small
+image these extra operations take longer than the attention they save, because the GPU is waiting on
+per-operation overhead, not on arithmetic. The 3-stage schedule does this 3 times (8.7 ms); the gradual
+schedule 12 times (13.9 ms).
+**Consequence.** On Market-1501 a 192x96 query is both faster and more accurate than a merged query of similar
+GFLOPs (83.60 vs 82.38 mAP for the mixed model). Token merging as "the" cheap-query knob is not supported by
+our own data. The defensible statement is narrower: one model can be made compatible under both knobs at once,
+and which knob to use is then a deployment choice that should be made from measured latency.
+
+## 6.6 ViT-B/16 reference (E15, one seed)
+**Question.** Do the effects seen on ViT-S appear on a larger backbone?
+**Setup.** ViT-B/16 (86 M parameters, 11.34 GFLOPs at 256x128), same recipe and seed 0; baseline 0.50 GPU-hours,
+TBSD probe 0.79.
+**Incident.** The probe run crashed after epoch 59 with Windows error 1455. This is not a GPU error: it means
+the system could not reserve more memory (RAM plus page file). Each data-loader worker on Windows is a separate
+Python process; at evaluation time the two test loaders start their own workers while the training workers stay
+alive, and with the larger model the total passed the limit. The run was resumed from its checkpoint with 2
+workers. Worker count changes how images are read, not what the model computes.
+**Result.** Baseline 86.38 mAP at full tokens, 71.51 at keep 0.5. Probe 83.68 at full tokens, 82.37 at keep 0.5.
+**Interpretation.** The shape repeats (collapse without training, flat curve with it), but the full-token price
+is 2.7 mAP instead of 0.5. One seed, so the size of that number is uncertain; its sign and rough magnitude are
+far larger than any seed spread seen on ViT-S (at most 0.5). Not investigated: whether the ViT-S learning rate
+suits ViT-B, or whether the two passes interfere more in a larger model. In accuracy per GFLOP ViT-B loses to
+ViT-S here (82.4 at 5.65 G for the cheapened ViT-B against 84.45 at 2.93 G for a plain ViT-S), which settles
+the backbone question for now: ViT-S.
+
+## 6.7 Where the first iteration ends
+Done: six-paper comparison with reading depths, a preliminary gap, a method (mixed two-pass training), an
+evaluation against equal-budget baselines with 3 seeds, measured efficiency, a second-backbone check, and the
+negative results. Written up in `REPORT_ITERATION1.md`.
+Honest summary: the method works in the low-cost range (+2.7 to +4.1 mAP over the equal-GPU-hour baseline at
+1.1-1.4 GFLOPs) and loses about 1.2 mAP at full cost; resolution is a better knob than merging on this dataset;
+the novelty that survives is multi-knob, multi-budget compatibility in one ViT with a cost account.
+What would change this picture most: a dataset with higher native resolution.

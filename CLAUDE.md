@@ -87,19 +87,25 @@ modify files or run experiments. Explanations go **in the conversation**, not on
 - To pause the project safely: STOP-file the running run (or let it finish), wait for the process to exit,
   commit/push metrics, confirm no python.exe from `.venv` is running.
 
-## State at the last pause (2026-11-16 01:00, PC shutdown; details and resume commands: PROGRESS.md)
-- Nothing was left running. `run_iter3.sh` was paused by STOP file. Done: phase M; `sp_lowres_s0/s1`,
-  `sp_merge_r_s0/s1`, `sp_mixed_s0`. Partial: `sp_mixed_s1` (`runs/sp_mixed_s1/ckpt.pth`, epoch 61/120).
-  Pending: `sp_lowres_s2`, `sp_merge_r_s2`, `sp_mixed_s2`, phase D (`vitb_base_s0`, `vitb_tbsd_s0`, ViT-B latency).
-- Resume: `bash run_iter3.sh /c/Users/user/data/Market-1501-v15.09.15 E D >> runs/queue_iter3.txt 2>&1`
-  (skips finished runs, resumes the partial one). Verify first that no `.venv` python.exe is already running.
-- **Priority on return (user, 2026-11-16): finish the first research-iteration report** — compare about 5-6
-  papers, defensible preliminary gap, our own methodology, evaluation against appropriate benchmarks. It does
-  not need to be perfect or to beat existing methods. Checklist in PROGRESS.md; reasoning in RESEARCH_LOG.md Part 5.
-- Preliminary (2/2/1 seeds, NOT results yet): gradual-merge second pass loses least at full tokens (84.25) and
-  reaches 82.8 at 1.41 GFLOPs; low-resolution second pass reaches 82.4 at 1.12 and 80.9 at 0.72 GFLOPs but
-  83.1 at full tokens; both are ahead of the equal-GPU-hour baseline + linear map below ~1.5 GFLOPs.
+## State at the end of session 3 (2026-11-16 22:45; details: PROGRESS.md, RESEARCH_LOG.md Part 6)
+- Nothing is running. `run_iter3.sh` is finished (phases M, E, D). No partial runs.
+- **First research-iteration report written: `REPORT_ITERATION1.md`.** Keep it in step with any new result.
+- Method retained: `sp_mixed` (two-pass training, cheap pass drawn from gradual merging and low resolution).
+  3 seeds, asymmetric mAP: 83.95 full / 83.60 at 1.62 G / 82.38 at 1.41 G / 83.01 at 1.12 G / 81.50 at 0.72 G.
+  vs equal-GPU-hour baseline + linear map: +0.8 to +4.1 below 1.7 GFLOPs, -1.16 at full tokens.
+  Specialists (`sp_lowres`, `sp_merge_r`) do not transfer across knobs.
+- Measured latency (`runs/latency_extra.csv`): low-resolution queries beat gradual merging in speed and accuracy
+  on Market-1501; gradual merging is 2.3x slower than full tokens at GPU batch 1. Do not present token merging
+  as the better knob.
+- Suma and Tolias (WACV 2023) read in full: frozen gallery + same-architecture student = candidate C1. C1 is a
+  baseline, not a contribution.
+- ViT-B (1 seed): baseline 86.38, TBSD 83.68 (deficit 2.7); worse than ViT-S per GFLOP. ViT-S stays main.
+  **ViT-B runs need `--workers 2`** (Windows error 1455, system memory, at evaluation with 4 workers).
+- To hide the GPU from a script use `CUDA_VISIBLE_DEVICES=-1`; an empty value does NOT hide it.
+- Next without user input: frozen-gallery student baseline; gradient-conflict diagnostic (decides C3);
+  separate-classifier control; `sp_mixed` on ViT-B; second-tier literature reads.
 - Second dataset still blocked on the user's own sign-up (CUHK03 Google Form preferred; Occluded-REID agreement).
+  It now decides whether token merging has any role.
 
 ## Key decisions and results so far (details: PROGRESS.md)
 - Main backbone ViT-S/16 (open question to instructor: ViT-B?). Market-1501 at `C:/Users/user/data/`.

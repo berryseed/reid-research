@@ -510,3 +510,43 @@ Incomplete (seed 2 missing; `sp_mixed` one seed): not to be quoted as results. S
 | low-res 160x80 | 1.12 | 82.36 ± 0.19 (82.11) | 79.89 ± 0.18 (81.00) | 83.01 ± 0.15 (82.79) |
 | low-res 128x64 | 0.72 | 80.96 ± 0.20 (80.67) | 73.04 ± 0.37 (76.31) | 81.50 ± 0.22 (81.25) |
 Query cosine to the full-token embedding (q_cos) at 160x80: 0.962 / 0.865 / 0.953; at r=11: 0.920 / 0.952 / 0.953.
+
+
+## 2026-11-16 22:12 — phase D, latency, queue finished
+- `vitb_base_s0` (21:05-21:40): 0.50 h, mAP 86.4 / R1 94.0; sweep done; auto-pushed.
+- `vitb_tbsd_s0` (21:44): **FAILED rc 1 after epoch 59**: `RuntimeError: Couldn't open shared file mapping ...
+  error code: <1455>` in DataLoader worker 0 (Windows: paging file too small = system commit limit reached when
+  the epoch-60 evaluation started 8 more workers). `ckpt.pth` at epoch 59, step 11918 intact.
+- Queue then ran `bench_latency.py --model vit_base_patch16_224 --out runs/latency_vitb.csv` and printed
+  `=== all done` 22:11:59.
+- 22:12 machine idle (no python.exe, GPU 0 %). Clean latency run:
+  `PYTHONUTF8=1 .venv/Scripts/python.exe bench_latency.py --extra --out runs/latency_extra.csv > runs/latency_extra_stdout.txt 2>&1` (rc 0).
+- 22:14 resume by hand with 2 workers (rc 0 at 22:42:41, train time 0.79 h total, mAP 83.7 / R1 93.0):
+  `.venv/Scripts/python.exe train.py --data C:/Users/user/data/Market-1501-v15.09.15 --out runs/vitb_tbsd_s0 --resume --seed 0 --model vit_base_patch16_224 --sd-mode merge --sd-keep random --workers 2 >> runs/vitb_tbsd_s0/stdout.txt 2>&1`
+  then `.venv/Scripts/python.exe evaluate.py --data ... --ckpt runs/vitb_tbsd_s0/last.pth --out runs/vitb_tbsd_s0/sweep.csv --modes merge --workers 2`.
+
+### Latency, ViT-S (`runs/latency_extra.csv`; idle machine; GPU AMP, CPU fp32 8 threads)
+| setting | GFLOPs | GPU b1 ms | GPU b256 ms/img | CPU b1 ms | CPU b8 ms/img |
+| --- | --- | --- | --- | --- | --- |
+| full | 2.93 | 6.04 | 0.1115 | 17.94 | 12.92 |
+| merge 3-stage 0.5 | 1.46 | 8.70 | 0.0667 | 13.39 | 7.28 |
+| gradual ToMe r=7 | 1.94 | 13.57 | 0.0951 | 18.11 | 9.77 |
+| gradual ToMe r=11 | 1.41 | 13.89 | 0.0726 | 15.64 | 7.52 |
+| low-res 224x112 | 2.22 | 6.13 | 0.0799 | 15.05 | 10.13 |
+| low-res 192x96 | 1.62 | 6.16 | 0.0577 | 13.02 | 7.56 |
+| low-res 160x80 | 1.12 | 6.16 | 0.0417 | 10.60 | 5.49 |
+| low-res 128x64 | 0.72 | 6.16 | 0.0285 | 8.87 | 3.78 |
+GPU rows agree with `runs/latency.csv` (6.00 / 0.1108 full); CPU rows are 10-15 % slower than in that file.
+
+### ViT-B/16, seed 0, merge 3-stage, asymmetric (symmetric) mAP
+| keep | GFLOPs | vitb_base_s0 | vitb_tbsd_s0 |
+| --- | --- | --- | --- |
+| 1.0 | 11.34 | 86.38 | 83.68 |
+| 0.9 | 9.91 | 86.20 (86.04) | 83.69 (83.69) |
+| 0.8 | 8.59 | 85.61 (84.99) | 83.66 (83.67) |
+| 0.7 | 7.44 | 84.52 (82.85) | 83.54 (83.45) |
+| 0.6 | 6.50 | 81.94 (78.66) | 83.29 (82.98) |
+| 0.5 | 5.65 | 71.51 (62.69) | 82.37 (81.18) |
+ViT-B latency (`runs/latency_vitb.csv`): full 6.16 ms GPU b1, 0.328 ms/img GPU b256, 60.5 ms CPU b1, 51.7 ms/img CPU b8.
+- Report `REPORT_ITERATION1.md`: sections 6.6 (latency) and 6.7 (ViT-B) written; status line no longer "draft".
+- Queue `run_iter3.sh` is finished. Nothing is running.
