@@ -4,9 +4,15 @@ Current state at a glance. Detailed chronological record with exact commands and
 `PROGRESS_LOG.md`. Background, decisions and literature: `PROJECT_CONTEXT.md`.
 All numbers are Market-1501, ViT-S/16 (ImageNet-21k->1k augreg weights), 256x128, 120 epochs, unless stated.
 
-_Last updated: 2026-11-16 ~01:05 local (session 2 paused for a PC shutdown at the user's request)._
+_Last updated: 2026-11-16 ~19:45 local (session 3, resumed after the shutdown)._
 
-## Current status: PAUSED (2026-11-16 01:00). Nothing is running. Queue `run_iter3.sh` stopped by STOP file.
+## Current status: RUNNING (2026-11-16 19:02). Queue `run_iter3.sh E D` resumed; `sp_mixed_s1` continued from epoch 62.
+- Session 3 so far: Suma and Tolias read in full (LITERATURE_MATRIX.md A5; candidate C1 is prior work, now a
+  baseline); `bench_latency.py --extra` written (clean run pending, GPU must be idle); report draft
+  `REPORT_ITERATION1.md` pushed with sections 6.4 (seed 2) and 6.6 (latency of low-res / gradual merge) pending.
+- Still to do for the report: 3-seed table of `sp_*` (after phase E), clean latency run (after phase D),
+  final choice of the method variant, final pass over conclusions.
+- The state table below describes the pause of 2026-11-16 01:00 and is kept as history.
 - **Research direction (user, 2026-11-15):** TBSD is an exploratory probe, not the contribution. Priorities:
   full-read literature review, gap reassessment, mechanism, own methodology. See `LITERATURE_MATRIX.md`,
   `METHOD_CANDIDATES.md`, RESEARCH_LOG.md Parts 4 and 5.
