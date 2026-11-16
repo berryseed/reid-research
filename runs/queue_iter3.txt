@@ -116,3 +116,9 @@ epoch 120/120 loss 2.102 id 1.033 tri 0.001 sd 0.029 | 22.0 min | mAP 83.1 R1 93
 done. train time 0.37 h, checkpoint: runs/sp_lowres_s2\last.pth
 === mech sp_lowres_s2 Mon Nov 16 19:48:34 BST 2026
 === sweep sp_lowres_s2 Mon Nov 16 19:50:13 BST 2026
+pushed sp_lowres_s2
+=== train sp_merge_r_s2 Mon Nov 16 19:53:38 BST 2026
+epoch 120/120 loss 2.084 id 1.034 tri 0.001 sd 0.012 | 27.8 min | mAP 84.3 R1 93.8
+done. train time 0.46 h, checkpoint: runs/sp_merge_r_s2\last.pth
+=== mech sp_merge_r_s2 Mon Nov 16 20:25:01 BST 2026
+=== sweep sp_merge_r_s2 Mon Nov 16 20:26:40 BST 2026
