@@ -460,3 +460,23 @@ Caveat: Market-1501 crops are natively 128x64; needs a higher-resolution dataset
 | low-res 128x64 | 0.72 | 80.91 [80.73 81.08] / 80.59 | 72.83 [72.87 72.79] / 76.22 | 81.25 / 80.95 |
 Incomplete (seed 2 missing; `sp_mixed` one seed): not to be quoted as results. Source: `runs/sp_*/mech.csv`,
 `runs/sp_*/sweep.csv`.
+
+
+## 2026-11-16 19:00 — session 3: resume after shutdown
+- Pre-checks 19:00: no python.exe; GPU 1 %, 1.2 GB; `runs/sp_mixed_s1/ckpt.pth` 175.6 MB present; no STOP file;
+  `git status -sb` in sync with origin/main (only `runs/sp_mixed_s1/` untracked).
+- Queue relaunched 19:02:30: `bash run_iter3.sh /c/Users/user/data/Market-1501-v15.09.15 E D >> runs/queue_iter3.txt 2>&1`
+  Five finished `sp_*` runs skipped; `sp_mixed_s1` resumed at epoch 62 (loss 2.143 at epoch 61 -> 2.135 at 65).
+  The `WARN: commit/push of sp_merge_r_s1 did not complete` line is benign (nothing new to commit).
+- Literature: Suma and Tolias (arXiv 2210.05463) read in full via ar5iv HTML (`FULL-S`). Entry A5 added to
+  LITERATURE_MATRIX.md. Finding: frozen teacher + same-architecture student initialised from the teacher,
+  label-free, low-resolution queries = candidate C1 with another knob. METHOD_CANDIDATES.md C1 corrected.
+- `bench_latency.py --extra`: adds rows `merge_r7`, `merge_r11`, `lowres224x112|192x96|160x80|128x64`
+  (default behaviour unchanged, so phase D's ViT-B call is unaffected). Smoke test: GFLOPs column = 2.93, 1.463,
+  1.941, 1.407, 2.221, 1.62, 1.122, 0.72 (matches mechanism.py).
+- **Error made:** the smoke test was meant to be CPU-only, but `CUDA_VISIBLE_DEVICES=""` does not hide the GPU,
+  so it ran its GPU section (~1 min) while `sp_mixed_s1` was training (epochs ~67-72). The run was not
+  interrupted (epoch 74 at 14.6 min, 4.8 GB VRAM), but (a) the smoke-test timings are contaminated and were
+  not saved in the repo, (b) the train time of `sp_mixed_s1` is slightly inflated: do not use it as a timing.
+- Pending for the report: seed 2 of `sp_*`; clean latency run (`bench_latency.py --extra --out runs/latency_extra.csv`)
+  only after the queue has finished.

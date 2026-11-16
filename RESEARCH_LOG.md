@@ -489,3 +489,44 @@ the methodology (currently leaning to budget-compatible training of one ViT with
 low-resolution second passes, with the frozen-gallery retrofit as the alternative); write the report with the
 negative results and the single-dataset limitation stated. ViT-B and the mechanism follow-ups come after the
 report unless the instructor asks for them first. Checklist: PROGRESS.md.
+
+# Part 6. Session 3 (2026-11-16 evening): resume, the resolution-asymmetry paper, latency preparation
+
+## 6.1 Resuming
+The queue was restarted with the same command as before the shutdown. The script skips a run when its final
+checkpoint `last.pth` exists and otherwise calls `train.py --resume`, which reloads weights, optimizer momentum,
+the mixed-precision scaler, the step counter (the learning rate is a function of the step) and the random
+number generators from `ckpt.pth`. Evidence that the restore was correct: the loss continues smoothly
+(2.143 at epoch 61 before the pause, 2.135 at epoch 65 after it) instead of jumping.
+
+## 6.2 Suma and Tolias, "Large-to-small Image Resolution Asymmetry in Deep Metric Learning" (read in full)
+**Why it had to be read.** Our strongest cheap-query setting is a low-resolution query against a full-resolution
+gallery; this paper studies exactly that asymmetry, so the gap statement cannot be written without it.
+**What it does.** The gallery network is trained normally and frozen. A copy of it (same architecture, same
+starting weights) is trained without labels so that its embedding of a small image lands on the frozen
+network's embedding of the large image: `(1 - cos(S(x_low), T(x_high)))^2`, plus two terms that match pairwise
+similarities between augmented views. Both networks receive the same random augmentation.
+CNNs (ResNet-50/18), CUB200 / Cars196 / SOP, one student per query resolution.
+**What it means for us.**
+1. Candidate C1 (frozen gallery model, trained cheap-query copy) is this method with a different knob. It is
+   a baseline for us, not a contribution. The earlier note that "starting from the same network" set C1 apart
+   from prior work was wrong.
+2. Their untrained control (the teacher itself on small queries) loses 8-16 mAP at half resolution and training
+   recovers most of it: the same pattern as our baseline vs `sp_lowres`. Our low-resolution finding is a
+   re-ID/ViT confirmation of a known effect, not a discovery.
+3. Not found in the text read: one set of weights that serves several budgets; token count (merging) as the
+   knob; compatibility across two knobs at once; person re-ID; latency or training-cost accounting. They list
+   joint optimisation of both sides as future work; our two-pass shared-weight training is one form of it and
+   shows its price (a full-token deficit of 0.2-1.4 mAP that their frozen teacher cannot have).
+**Updated gap wording (preliminary, "not found" not "does not exist"):** a single ViT whose embedding stays
+compatible with its own full-token gallery under more than one cheap-query knob (gradual token merging and
+input resolution), with the cost of obtaining it (training GPU-hours, full-token loss, measured latency)
+accounted for against equal-budget baselines.
+
+## 6.3 Latency script extended (not yet run for real)
+GFLOPs count multiplications; they are not time. `bench_latency.py --extra` now also times the two settings the
+report recommends (gradual merging r = 7, 11; low-resolution queries). The low-resolution rows include the
+in-model image resize and position-embedding resampling, so they slightly overstate the cost. The smoke test
+confirmed the GFLOPs column against known values. Its timings are void: by my error it also used the GPU for
+about a minute while a training run was on it (an empty `CUDA_VISIBLE_DEVICES` does not hide the GPU). The real
+measurement will be run once, after the queue has finished and nothing else uses the machine.

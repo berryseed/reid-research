@@ -38,6 +38,11 @@ Asymmetric mAP = queries at budget b against the full gallery. All numbers: Mark
   (cosine 0.73-0.95 before training instead of unrelated). SUReID distils from a frozen teacher but evaluates
   the pruned student against a pruned gallery in the text read. **Honest view: this is asymmetric-retrieval
   distillation with a new kind of student; the novelty is in the setting and the cost accounting.**
+- **Correction 2026-11-16 (after reading Suma and Tolias in full, LITERATURE_MATRIX.md A5):** a frozen teacher
+  with a student of the same architecture initialised from the teacher's weights, trained label-free on a
+  cheaper input, is exactly their method (resolution knob, CNNs, CUB/Cars/SOP). The "same network, aligned at
+  the start" point above is therefore **not** a difference from prior work. C1 is a baseline/component for us
+  (new only in: token knob, re-ID, one student for several budgets, cost accounting), not a contribution.
 - **Expected advantages:** zero full-token deficit; no re-indexing; one forward+backward of the cheap pass per
   step plus a no-grad teacher pass, so cheaper than TBSD; label-free variant possible.
 - **Limitations:** two sets of weights (or adapters) to store; one student may not cover all budgets.

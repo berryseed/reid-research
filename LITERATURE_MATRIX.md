@@ -112,6 +112,38 @@ through shared weights, identity + triplet losses on both, plus `mean(1 - cos(bn
 - **Relative to ours:** label-free neighbour-structure distillation is a possible ingredient; in D3still's
   re-implementation it underperformed plain feature distillation.
 
+### A5. Suma and Tolias — Large-to-small Image Resolution Asymmetry in Deep Metric Learning (added 2026-11-16)
+- **Bibliographic:** Pavel Suma, Giorgos Tolias (CTU Prague). WACV 2023 (venue from the earlier abstract-level
+  entry; not shown on the HTML page read). arXiv 2210.05463. Code: github.com/pavelsuma/raml.
+  Depth: `FULL-S` (ar5iv HTML through a summarising fetch tool; equations as reported by the tool).
+- **Objective:** cheap query extraction by using a small query resolution against a database indexed at a
+  large resolution.
+- **Methodology:** teacher = the database network, trained with labels (triplet loss), frozen. Student = same
+  architecture, **initialised from the teacher's weights**, trained **without labels** on low-resolution
+  inputs. Loss `L = L_abs + lambda_t L_rel-ts + lambda_s L_rel-ss`, with
+  `l_abs = (1 - cos(S(x_low), T(x_high)))^2`, `l_rel-ts = (T(y)^T T(z) - T(y)^T S(z))^2`,
+  `l_rel-ss = (T(y)^T T(z) - S(y)^T S(z))^2` over pairs of augmentations y, z of one image. "Coupled
+  augmentations": the same random augmentation for the teacher and student inputs (separate ones hurt).
+  8 augmentations per image; random resized crop, colour distortion, flip, mixup.
+- **Token reduction mechanism:** none. ResNet-50 / ResNet-18 + GeM. No vision transformer or tokens in the text.
+- **Embedding compatibility / asymmetric retrieval:** yes / yes (student queries vs teacher database at 448).
+- **One model for several budgets?** No: Table 2 trains a different student per query resolution (317/224/158).
+  A single student for several resolutions is not stated.
+- **Costs:** query GFLOPs in figures (values not in the text). No latency. Training time only qualitatively
+  (grows about linearly with the number of augmentations).
+- **Datasets:** CUB200, Cars196, SOP. No person re-ID dataset.
+- **Numbers (mAP / R@1, query 224 vs database 448):** untrained teacher asymmetric 34.3/61.0 (CUB), 25.7/61.0
+  (Cars), 51.3/74.3 (SOP); trained student asymmetric 40.8/70.5, 38.1/83.4, 59.7/80.8; teacher symmetric at
+  448: 42.7/73.7, 41.6/87.9, 62.6/82.1.
+- **Future work named by the authors:** combine network and resolution asymmetry; drop the fixed-database
+  assumption and optimise both networks jointly.
+- **Relative to ours:** (1) **Candidate C1 (frozen gallery, same-network student at a reduced budget) is this
+  method** with a different knob; "student starts aligned because it is the same network" is their idea, not
+  ours. (2) Their untrained-teacher control is our low-resolution-query baseline. (3) Not found in the text:
+  one set of weights serving several budgets; token count as the knob; more than one knob; re-ID; latency or
+  training-cost accounting. Our shared-weight two-pass training is one instance of the joint optimisation they
+  leave as future work, and it pays for it with a full-token deficit that their frozen teacher avoids.
+
 ---
 
 ## B. Token reduction in vision transformers
