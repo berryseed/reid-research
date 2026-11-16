@@ -1,0 +1,2 @@
+##### phase F Mon Nov 16 22:49:50 BST 2026
+=== train fg_mixed_s0 (teacher runs/base_s0/last.pth) Mon Nov 16 22:49:50 BST 2026
