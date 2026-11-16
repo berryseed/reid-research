@@ -44,3 +44,69 @@ done. train time 0.40 h, checkpoint: runs/sp_merge_r_s1\last.pth
 pushed sp_merge_r_s1
 === train sp_mixed_s1 Mon Nov 16 00:46:41 BST 2026
 PAUSED sp_mixed_s1 (resume: rerun this script)
+##### phase E Mon Nov 16 19:02:30 BST 2026
+skip train sp_lowres_s0
+skip mech sp_lowres_s0
+skip sweep sp_lowres_s0
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	runs/sp_mixed_s1/
+
+nothing added to commit but untracked files present (use "git add" to track)
+WARN: commit/push of sp_lowres_s0 did not complete (will be picked up later)
+skip train sp_merge_r_s0
+skip mech sp_merge_r_s0
+skip sweep sp_merge_r_s0
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	runs/sp_mixed_s1/
+
+nothing added to commit but untracked files present (use "git add" to track)
+WARN: commit/push of sp_merge_r_s0 did not complete (will be picked up later)
+skip train sp_mixed_s0
+skip mech sp_mixed_s0
+skip sweep sp_mixed_s0
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	runs/sp_mixed_s1/
+
+nothing added to commit but untracked files present (use "git add" to track)
+WARN: commit/push of sp_mixed_s0 did not complete (will be picked up later)
+skip train sp_lowres_s1
+skip mech sp_lowres_s1
+skip sweep sp_lowres_s1
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	runs/sp_mixed_s1/
+
+nothing added to commit but untracked files present (use "git add" to track)
+WARN: commit/push of sp_lowres_s1 did not complete (will be picked up later)
+skip train sp_merge_r_s1
+skip mech sp_merge_r_s1
+skip sweep sp_merge_r_s1
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	runs/sp_mixed_s1/
+
+nothing added to commit but untracked files present (use "git add" to track)
+WARN: commit/push of sp_merge_r_s1 did not complete (will be picked up later)
+=== train sp_mixed_s1 Mon Nov 16 19:02:30 BST 2026
+epoch 120/120 loss 2.105 id 1.036 tri 0.001 sd 0.026 | 24.8 min | mAP 84.0 R1 93.6
+done. train time 0.41 h, checkpoint: runs/sp_mixed_s1\last.pth
+=== mech sp_mixed_s1 Mon Nov 16 19:17:56 BST 2026
+=== sweep sp_mixed_s1 Mon Nov 16 19:19:36 BST 2026
