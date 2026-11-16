@@ -200,4 +200,29 @@ unless it shows (a) token count is a *better* knob than width or resolution at e
 about the mechanism that the width/resolution literature does not have.
 
 Still to read in full before the gap statement is final: ACD (CVPR 2026 Findings), ThinkingViT, MatMamba
-(retrieval section), ToCom, Suma and Tolias, AMG, SRE-Merge, TE-VMamba, BCT, AML.
+(retrieval section), ToCom, AMG, SRE-Merge, TE-VMamba, BCT, AML. (Suma and Tolias: done 2026-11-16, entry A5.)
+
+## E. Gap reassessment after session 3 (2026-11-16)
+
+Papers read in full today: one (Suma and Tolias, A5, depth `FULL-S`). No other entry changed depth.
+
+What changed:
+1. **Candidate C1 is prior work.** Frozen gallery model + same-architecture student initialised from it +
+   label-free alignment on a cheaper input is the Suma and Tolias method. We now run it as a baseline
+   (`train.py --teacher`, runs `fg_mixed_s*`; absolute term only, so "in the style of", not a re-implementation:
+   their two relational terms and their 8-augmentation scheme are not implemented).
+2. **Our own measurements narrow the gap further.** On Market-1501 the resolution knob (which A5 studies) beats
+   the token-merging knob in accuracy and in measured latency (`runs/latency_extra.csv`). "Token count as the
+   cheap-query knob" is therefore not a defensible headline on this dataset.
+3. **What is still not found in the texts read** (absence of evidence only): a single set of weights that stays
+   compatible with its own full-cost gallery under several budgets and under more than one knob (resolution and
+   token merging); person re-ID in the resolution-asymmetry setting; a cost account of compatibility (training
+   GPU-hours against an equal-budget baseline, full-cost accuracy lost, measured latency per regime).
+4. A5 trains one student per resolution; our frozen-gallery student and `sp_mixed` each cover four resolutions
+   and five merge rates with one set of weights. Whether that is "new" depends on the unread papers above
+   (ACD, ToCom, MatMamba, ThinkingViT in particular) and must not be claimed before they are read.
+
+Open literature questions for the next session:
+- Does any asymmetric-retrieval paper train one query model for several budgets (ACD, AML, ROP)?
+- Is there a re-ID paper on resolution-asymmetric or low-resolution-query retrieval with a compatible gallery
+  (cross-resolution re-ID is a known topic; **not searched yet**, and it could close most of the remaining gap)?

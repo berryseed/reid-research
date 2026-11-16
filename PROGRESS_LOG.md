@@ -550,3 +550,41 @@ GPU rows agree with `runs/latency.csv` (6.00 / 0.1108 full); CPU rows are 10-15 
 ViT-B latency (`runs/latency_vitb.csv`): full 6.16 ms GPU b1, 0.328 ms/img GPU b256, 60.5 ms CPU b1, 51.7 ms/img CPU b8.
 - Report `REPORT_ITERATION1.md`: sections 6.6 (latency) and 6.7 (ViT-B) written; status line no longer "draft".
 - Queue `run_iter3.sh` is finished. Nothing is running.
+
+
+## 2026-11-16 22:45-23:50 — phase F (frozen-gallery student), shutdown preparation
+- Code (commit 2089cba): `train.py --teacher <last.pth>` (student = copy of the checkpoint; frozen eval-mode
+  teacher; label-free loss `mean(1 - cos(bn_student_cheap, bn_teacher_full))`; student BNNeck in eval mode;
+  `teacher` added to the resume consistency check); `mechanism.py --gallery-ckpt` (gallery and all full-token
+  references from the teacher); `run_iter4.sh`.
+- Smoke test (scratchpad, 2 epochs, teacher `base_s0`): loss 0.083 -> 0.065; reference mAP 83.89 (= base_s0);
+  160x80 queries 80.74 after 2 epochs. Bug fixed afterwards: header line printed GFLOPs from the student
+  (0.038); now read from the reference model (rows were always correct).
+- Queue: `bash run_iter4.sh /c/Users/user/data/Market-1501-v15.09.15 >> runs/queue_iter4.txt 2>&1`
+  22:49:50 fg_mixed_s0 -> 0.23 h; 23:08:47 fg_mixed_s1 -> 0.24 h; 23:28:00 fg_mixed_s2 -> 0.24 h; each with
+  mech and auto-push; `=== all done` 23:46:55. Student symmetric full-token mAP at epoch 96 (student gallery,
+  not the deployment setting): 84.0 / 84.9 / 84.8. Peak VRAM 1.83 GB.
+- User asked at about 23:40 to prepare for shutdown: no new runs; the queue was on its last item (seed 2,
+  epoch 92/96) and was left to finish.
+- Aggregate: `runs/fg_mechanism.csv` (concatenated `runs/fg_mixed_s[012]/mech.csv`) -> `runs/fg_mechanism_agg.md`.
+
+### fg_mixed, asymmetric mAP vs the teacher's gallery, raw (ridge map), 3 seeds; q_cos = cos(student cheap, teacher full)
+| setting | GFLOPs | q_cos | fg_mixed |
+| --- | --- | --- | --- |
+| full tokens (teacher) | 2.93 | 1 | 84.45 ± 0.49 (83.89 / 84.71 / 84.75) |
+| merge 3-stage 0.7 | 1.92 | 0.965 | 83.46 ± 0.49 (83.35) |
+| gradual ToMe r=7 | 1.94 | 0.969 | 83.74 ± 0.53 (83.58) |
+| merge 3-stage 0.5 | 1.46 | 0.834 | 76.92 ± 0.43 (77.62) |
+| random 0.5 | 1.46 | 0.658 | 62.04 ± 0.39 (64.41) |
+| gradual ToMe r=11 | 1.41 | 0.913 | 81.50 ± 0.54 (81.44) |
+| low-res 224x112 | 2.22 | 0.958 | 84.22 ± 0.49 (84.07) |
+| low-res 192x96 | 1.62 | 0.950 | 83.68 ± 0.49 (83.52) |
+| low-res 160x80 | 1.12 | 0.931 | 82.78 ± 0.55 (82.60) |
+| low-res 128x64 | 0.72 | 0.891 | 80.48 ± 0.69 (80.21) |
+
+### Shutdown checks 23:47-23:55
+- `check_ckpts.py` (scratchpad; CPU load, all float tensors finite, metadata present): OK for
+  `sp_mixed_s1`, `sp_lowres_s2`, `sp_merge_r_s2`, `sp_mixed_s2` (87.8 MB, 156 tensors), `vitb_base_s0`,
+  `vitb_tbsd_s0` (345.4 MB), `fg_mixed_s0/1/2` (87.8 MB). Earlier checkpoints were verified at the previous pause.
+- No python.exe; GPU 0 %, 1.5 GB (desktop); no `runs/*/STOP`; no `runs/*/ckpt.pth` (no partial run).
+- Nothing to resume. Next-session order of work: PROGRESS.md "What to do first when resuming".

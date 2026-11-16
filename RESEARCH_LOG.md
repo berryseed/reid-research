@@ -607,3 +607,91 @@ Honest summary: the method works in the low-cost range (+2.7 to +4.1 mAP over th
 1.1-1.4 GFLOPs) and loses about 1.2 mAP at full cost; resolution is a better knob than merging on this dataset;
 the novelty that survives is multi-knob, multi-budget compatibility in one ViT with a cost account.
 What would change this picture most: a dataset with higher native resolution.
+
+## 6.8 Frozen-gallery student (E16, 3 seeds): the prior-work-style baseline
+**Question.** Our mixed model pays about 1.2 mAP at full tokens because one set of weights has to serve both
+the gallery and the cheap queries. If the gallery model is frozen and only a copy of it is trained for cheap
+queries (the Suma and Tolias scheme), do we get the same low-cost accuracy without that price?
+**Concepts.** *Teacher*: the finished baseline; it encodes the gallery and never changes. *Student*: starts as
+an exact copy; it only ever sees cheap views and is trained to output what the teacher outputs for the full
+view of the same image. *Label-free*: the loss compares two embeddings of the same image, so no identity labels
+are needed. *BatchNorm in eval mode*: the student's BNNeck uses the teacher's stored statistics during training,
+because that is how it will be computed at test time.
+**Setup.** `fg_mixed_s0-2`: ViT-S/16, teacher `base_s{seed}` (120 epochs), student 96 epochs x 202 iterations,
+batch 64, SGD lr 0.008 (5 warm-up epochs, cosine), mixed precision, loss `mean(1 - cos)`, cheap view = one of
+four low resolutions or gradual merging with r in {3,5,7,9,11}. 0.23-0.24 GPU-hours, 1.8 GB VRAM.
+Evaluation: student queries against the teacher's gallery.
+**Expectation.** Zero full-token deficit by construction; low-cost accuracy near `sp_mixed`.
+**Result.** 83.68 at 192x96 (sp_mixed 83.60), 82.78 at 160x80 (83.01), 81.50 at r = 11 (82.38), 80.48 at 128x64
+(81.50); full tokens 84.45 (the teacher) against 83.95.
+**Interpretation.**
+1. Expectation met. The simplest form of the prior-work scheme is as good as our method on the knob that
+   matters most on this dataset, and better at full cost.
+2. Our method keeps two things: one set of weights, and about 1 mAP on merging and on the smallest resolution.
+   The second is not established with three seeds (the baseline's spread, 0.5-0.7, is inherited from its
+   teachers; a paired comparison per seed would be sharper and has not been done).
+3. Why the student may be weaker on the hardest views: it has no identity loss, so nothing tells it which
+   differences between people matter when the cheap view cannot reproduce the full embedding exactly
+   (cosine 0.89 at 128x64). Untested; adding the frozen classifier's cross-entropy (the BCT mechanism) would
+   test it.
+4. Cost honesty: the student epoch took 0.15 min, not the 0.11 estimated from the smoke test, so teacher plus
+   student is about 0.46 GPU-hours, roughly 20 % above the 216-epoch baseline. A 75-epoch student would have
+   matched the budget.
+**Consequence.** The claim "single-model multi-budget training is the better way" is not supported. What the
+data support is a statement about the *setting*: one cheap-query model can be made compatible with a full-cost
+gallery under several budgets and two knobs at once, by either scheme, for about one extra baseline training,
+and the right knob must be chosen from measured latency. Which scheme to carry forward is an open decision.
+
+## 6.9 End of session 3 (2026-11-16 23:50): complete record
+
+### What was done today
+1. Resumed the iteration-3 queue after the shutdown; finished phase E (seed 2 of the three second-pass variants;
+   9 runs in total) and phase D (ViT-B baseline and TBSD probe, one seed each; ViT-B latency).
+2. Read Suma and Tolias (WACV 2023) in full; candidate C1 turned out to be their method.
+3. Measured latency of low-resolution and gradual-merge queries on an idle machine.
+4. Wrote the first research-iteration report, `REPORT_ITERATION1.md`.
+5. Implemented and ran the frozen-gallery student baseline (3 seeds).
+
+### Discoveries (all Market-1501, ViT-S/16, 3 seeds unless stated)
+- Compatibility is learned per knob: training with one kind of cheap view does not make the model compatible
+  under the other; training with both does, at almost no cost on either (Section 6.4).
+- `sp_mixed` vs the equal-GPU-hour baseline with a linear map: +4.1 mAP at 1.12 GFLOPs, +2.7 at 1.41, +0.8 at
+  1.62; -1.16 at full tokens.
+- GFLOPs do not predict latency: a single image on the GPU costs about 6 ms at any token count; gradual merging
+  makes it 13.9 ms. Low resolution gives 1.7-3.9x where compute-bound (Section 6.5).
+- Resolution beats token merging on this dataset in both accuracy and speed.
+- The frozen-gallery baseline ties `sp_mixed` on low resolution with no full-token loss (Section 6.8).
+- ViT-B, one seed: same qualitative behaviour, full-token deficit of the probe 2.7 mAP, worse than ViT-S per
+  GFLOP (Section 6.6).
+
+### Methodological changes
+- Method under study changed from 3-stage TBSD to `sp_mixed` (cheap pass sampled from gradual merging and low
+  resolution), and a second scheme (`fg_mixed`) now stands beside it.
+- New code paths: `train.py --teacher`, `mechanism.py --gallery-ckpt`, `bench_latency.py --extra`, `run_iter4.sh`.
+- Equal-budget accounting made explicit and imperfect budgets stated (sp_merge_r +15 %, fg_mixed +20 %).
+- ViT-B runs use `--workers 2`.
+
+### Negative results and withdrawn claims (today)
+- Token merging as the preferred cheap-query knob: not supported (slower and less accurate than resolution here).
+- "Starting the student from the gallery network is our idea" (C1): withdrawn; it is Suma and Tolias.
+- "Single-model multi-budget training beats a frozen-gallery student": not supported.
+- Specialists (`sp_lowres`, `sp_merge_r`) as general solutions: rejected; they do not transfer across knobs.
+- TBSD on ViT-B: full-token loss of 2.7 mAP (one seed).
+- Class-attention selection is still far below random selection in every trained variant (unexplained).
+
+### Unresolved questions
+1. Which scheme is the method: `sp_mixed` or the frozen-gallery student? (Open decision for the user/instructor.)
+2. Does a cross-resolution / low-resolution-query re-ID literature already cover the remaining gap? Not searched.
+3. Do the resolution results survive on a dataset with higher native resolution? (Needs the CUHK03 sign-up.)
+4. Why does two-pass training cost full-token accuracy, and why so much more on ViT-B? (Gradient-conflict
+   diagnostic not run.)
+5. Is the shared classifier what creates compatibility in `sp_mixed`? (Control not run.)
+6. Would a frozen-gallery student on the 216-epoch teacher keep its low-cost numbers? (Not run.)
+7. Does an identity loss through the frozen classifier close the student's gap on the hardest views? (Not run.)
+8. Why is class-attention top-k worse than random? (Spatial-coverage test not run.)
+
+### Where we stopped, and what to do first
+Nothing is running and nothing is partial. The order of work for the next session is in PROGRESS.md
+("What to do first when resuming"): literature search on cross-resolution re-ID and multi-budget asymmetric
+retrieval first (no GPU, and it decides whether the gap survives), then the method decision, then the
+experiments in the "Remaining experiments" table.

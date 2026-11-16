@@ -87,23 +87,35 @@ modify files or run experiments. Explanations go **in the conversation**, not on
 - To pause the project safely: STOP-file the running run (or let it finish), wait for the process to exit,
   commit/push metrics, confirm no python.exe from `.venv` is running.
 
-## State at the end of session 3 (2026-11-16 22:45; details: PROGRESS.md, RESEARCH_LOG.md Part 6)
-- Nothing is running. `run_iter3.sh` is finished (phases M, E, D). No partial runs.
+## State at the end of session 3 (2026-11-16 23:50, PC shutdown; details: PROGRESS.md, RESEARCH_LOG.md Part 6)
+- **Nothing is running and nothing is partial.** `run_iter3.sh` (phases M, E, D) and `run_iter4.sh` (phase F) are
+  finished. No `ckpt.pth`, no STOP file, nothing to resume. All metrics pushed; `*.pth` local only.
 - **First research-iteration report written: `REPORT_ITERATION1.md`.** Keep it in step with any new result.
-- Method retained: `sp_mixed` (two-pass training, cheap pass drawn from gradual merging and low resolution).
-  3 seeds, asymmetric mAP: 83.95 full / 83.60 at 1.62 G / 82.38 at 1.41 G / 83.01 at 1.12 G / 81.50 at 0.72 G.
-  vs equal-GPU-hour baseline + linear map: +0.8 to +4.1 below 1.7 GFLOPs, -1.16 at full tokens.
-  Specialists (`sp_lowres`, `sp_merge_r`) do not transfer across knobs.
+- **On resume, in this order** (full list: PROGRESS.md "What to do first when resuming"):
+  1. confirm the machine is idle and git is in sync;
+  2. literature first, no GPU: cross-resolution / low-resolution-query re-ID with a compatible gallery; one
+     query model for several budgets in asymmetric retrieval (ACD, AML, ROP); ToCom, MatMamba, ThinkingViT.
+     This decides whether the remaining gap survives;
+  3. raise the open method decision with the user (below);
+  4. then the "Remaining experiments" table in PROGRESS.md.
+- **Open decision, not settled:** `sp_mixed` (one set of weights; two-pass training, cheap pass drawn from
+  gradual merging and low resolution; 83.95 full / 83.60 @1.62 G / 82.38 @1.41 G / 83.01 @1.12 G / 81.50 @0.72 G)
+  versus the frozen-gallery student `fg_mixed` (prior-work style, Suma and Tolias; two sets of weights,
+  label-free; 84.45 full / 83.68 / 81.50 / 82.78 / 80.48). They tie on low resolution; `sp_mixed` is about
+  1 mAP ahead under merging and at 128x64 (suggestive only, 3 seeds). Do not claim `sp_mixed` beats it.
+- Both beat the equal-GPU-hour baseline + linear map below about 1.7 GFLOPs (`sp_mixed` +0.8 to +4.1) and are
+  below it at full tokens (85.11). Specialists (`sp_lowres`, `sp_merge_r`) do not transfer across knobs.
 - Measured latency (`runs/latency_extra.csv`): low-resolution queries beat gradual merging in speed and accuracy
-  on Market-1501; gradual merging is 2.3x slower than full tokens at GPU batch 1. Do not present token merging
-  as the better knob.
+  on Market-1501; gradual merging is 2.3x slower than full tokens at GPU batch 1; nothing reduces single-image
+  GPU latency (about 6 ms). Do not present token merging as the better knob.
 - Suma and Tolias (WACV 2023) read in full: frozen gallery + same-architecture student = candidate C1. C1 is a
-  baseline, not a contribution.
+  baseline (now implemented), not a contribution.
 - ViT-B (1 seed): baseline 86.38, TBSD 83.68 (deficit 2.7); worse than ViT-S per GFLOP. ViT-S stays main.
   **ViT-B runs need `--workers 2`** (Windows error 1455, system memory, at evaluation with 4 workers).
 - To hide the GPU from a script use `CUDA_VISIBLE_DEVICES=-1`; an empty value does NOT hide it.
-- Next without user input: frozen-gallery student baseline; gradient-conflict diagnostic (decides C3);
-  separate-classifier control; `sp_mixed` on ViT-B; second-tier literature reads.
+- Apply long documentation edits from files (Write tool + a small script), not from long inline shell heredocs.
+- Budgets are only approximately equal and must be stated: 216-epoch baseline 0.36-0.38 GPU-h; `sp_mixed`
+  0.35-0.44; `sp_merge_r` 0.40-0.46; teacher + `fg_mixed` student about 0.46.
 - Second dataset still blocked on the user's own sign-up (CUHK03 Google Form preferred; Occluded-REID agreement).
   It now decides whether token merging has any role.
 
@@ -148,6 +160,10 @@ modify files or run experiments. Explanations go **in the conversation**, not on
   `mechanism.py` (drift diagnostics, training-free corrections, low-res queries) + `aggregate_mech.py`;
   `check_reduction.py` (ours vs transcribed official ToMe/EViT); `bench_latency.py`; `aggregate2.py`;
   queues `run_iter2.sh` (done) and `run_iter3.sh` (phases M, E, D).
+- Added in session 3: `train.py --teacher <last.pth>` (frozen-gallery student, label-free);
+  `mechanism.py --gallery-ckpt` (gallery from another checkpoint); `bench_latency.py --extra` (low-resolution
+  and gradual-merge rows); queue `run_iter4.sh` (phase F, done); `REPORT_ITERATION1.md`; aggregates
+  `runs/sp_mechanism*.{csv,md}`, `runs/fg_mechanism*.{csv,md}`, `runs/latency_extra.csv`, `runs/latency_vitb.csv`.
 - `runs/` experiment outputs (`log.json`, `last.pth`, `sweep.csv/png`).
 
 ## Sanity expectations

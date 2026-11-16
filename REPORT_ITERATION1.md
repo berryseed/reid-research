@@ -2,7 +2,8 @@
 
 **Status: first-iteration report, 2026-11-16.** Accuracy results are 3-seed results on Market-1501 with
 ViT-S/16; latency is measured. Not done: a second dataset, a full second backbone (one ViT-B seed, Section
-6.7), re-implemented prior-work baselines (Section 7).
+6.7), re-implemented SFSC / D3still baselines (Section 7). Section 6.8 adds a frozen-gallery baseline in
+the style of Suma and Tolias, which matches the proposed method on low-resolution queries.
 Sources of every number: `PROGRESS.md`, `PROGRESS_LOG.md`, `runs/*/mech.csv`, `runs/*/sweep.csv`.
 
 ## 1. Problem and thesis
@@ -215,8 +216,9 @@ Reading:
 6. Class-attention token selection remains far below random selection in all three variants (for example
    `sp_merge_r`, keep 0.5: 41.5 vs 68.6).
 
-**Method retained for the next iteration: `sp_mixed`** (two-pass training with the cheap pass drawn from both
-families), with its full-cost deficit as the main open problem.
+**Best of the three two-pass variants: `sp_mixed`** (cheap pass drawn from both families), with its full-cost
+deficit as the main open problem. Whether it or the frozen-gallery student of Section 6.8 is carried forward
+is an open decision.
 
 ### 6.5 Ablations and rejected hypotheses (completed)
 - **Alignment term:** multi-budget training without it reaches 80.56 ± 0.07 at 3-stage keep 0.5, against 81.99
@@ -289,6 +291,41 @@ Reading (one seed; none of this is a result yet):
    ViT-S for 3.9 times the GFLOPs. ViT-S stays the main backbone.
 4. The mixed variant (Section 6.4) has not been run on ViT-B.
 
+### 6.8 Prior-work-style baseline: frozen-gallery student (3 seeds)
+In the style of Suma and Tolias (Section 2): the finished 120-epoch baseline is frozen and encodes the gallery.
+A copy of it is trained for 96 epochs **without labels** so that its cheap view (low resolution or gradual
+merging, sampled as in `sp_mixed`) reproduces the frozen model's full-token embedding,
+`L = mean(1 - cos(S(x; b), T(x; full)))`. Only their absolute term is implemented, not their relational terms
+or multi-augmentation scheme. Runs `fg_mixed_s0-2`, teacher `base_s0-2`; source `runs/fg_mechanism.csv`,
+`runs/fg_mechanism_agg.md`. Asymmetric mAP against the teacher's gallery, mean ± std.
+
+| Query setting | GFLOPs | Baseline 216 ep + linear map | `sp_mixed` | `fg_mixed` |
+| --- | --- | --- | --- | --- |
+| full tokens | 2.93 | 85.11 | 83.95 ± 0.15 | 84.45 ± 0.49 (teacher) |
+| low-resolution 224x112 | 2.22 | not tabulated | 83.91 ± 0.17 | 84.22 ± 0.49 |
+| gradual ToMe r = 7 | 1.94 | 83.75 ± 0.03 | 83.70 ± 0.14 | 83.74 ± 0.53 |
+| low-resolution 192x96 | 1.62 | 82.80 ± 0.23 | 83.60 ± 0.14 | 83.68 ± 0.49 |
+| gradual ToMe r = 11 | 1.41 | 79.70 ± 0.13 | 82.38 ± 0.27 | 81.50 ± 0.54 |
+| low-resolution 160x80 | 1.12 | 78.96 ± 0.18 | 83.01 ± 0.15 | 82.78 ± 0.55 |
+| low-resolution 128x64 | 0.72 | not measured | 81.50 ± 0.22 | 80.48 ± 0.69 |
+
+Cost: student 0.23-0.24 GPU-hours and 1.8 GB peak VRAM (two-pass training: 4.9 GB); with the teacher's 0.22
+the total is about 0.46 GPU-hours, roughly 20 % more than the 216-epoch baseline (0.36-0.38) and slightly more
+than `sp_mixed` (0.35-0.44). Two sets of weights are stored (2 x 88 MB). The larger spread of `fg_mixed`
+is inherited from its teachers (84.45 ± 0.49).
+
+Reading:
+1. The frozen-gallery student **equals `sp_mixed` on low-resolution queries at 192x96 and 160x80** (differences
+   of 0.1-0.2 mAP, inside the spread) and has **no full-cost deficit** (+0.5 over `sp_mixed` at full tokens).
+   It needs no labels for the second stage.
+2. `sp_mixed` is ahead by 0.9 mAP under gradual merging (r = 11) and 1.0 at 128x64. With spreads of 0.3-0.7 over
+   three seeds this is suggestive, not established. Its real distinguishing property is one set of weights.
+3. Neither reaches the 216-epoch baseline at full tokens (85.11). A frozen-gallery student on that stronger
+   teacher has not been run; it would keep 85.11 at full cost by construction, at a larger total budget.
+4. Consequence for the claim: single-model multi-budget training (`sp_mixed`) is **not shown to be better** than
+   the closest prior-work scheme. The contribution, if any, lies in the multi-budget, two-knob setting itself
+   and its cost account, in which both schemes can be instantiated; which one to carry forward is open.
+
 ## 7. Limitations
 
 1. **One dataset.** Market-1501 crops are natively 128x64 and are upsampled to 256x128, so low-resolution
@@ -299,8 +336,8 @@ Reading (one seed; none of this is a result yet):
 3. **Full-cost deficit.** Every two-pass variant is below the equal-GPU-hour baseline at full tokens (0.8-2.0
    mAP on ViT-S; 2.7 mAP below the 120-epoch baseline on ViT-B, one seed).
 4. **Narrow novelty** (Section 3). Several prior-work entries are at abstract depth.
-5. **No comparison with a re-implemented SFSC, D3still or frozen-teacher (Suma and Tolias) baseline**, and none
-   with a small CNN at equal query cost.
+5. **No comparison with a re-implemented SFSC or D3still baseline**, and none with a small CNN at equal query
+   cost. The frozen-teacher baseline (Section 6.8) implements only the absolute term of Suma and Tolias.
 6. GFLOPs are analytic estimates; the class-attention result is unexplained; gradient conflict between the two
    passes has not been measured.
 
@@ -320,14 +357,19 @@ Reading (one seed; none of this is a result yet):
    and at large GPU batch with 81.5-83.6 mAP; gradual merging is slower and less accurate at similar analytic
    cost, and 2.3 times slower than full tokens for a single image on the GPU. No setting reduces single-image
    GPU latency.
-5. Negative results worth reporting: the first method lost to an equal-budget baseline; no low-data
+5. A frozen-gallery student in the style of prior work matches the single-model method on low-resolution
+   queries with no loss at full cost (Section 6.8). The single-model method is therefore not shown to be
+   better; it differs by needing one set of weights and by about 1 mAP under merging (not established).
+6. Negative results worth reporting: the first method lost to an equal-budget baseline; no low-data
    regularisation effect; class-attention token selection worse than random for cross-budget matching;
    merging dominated by resolution on this dataset.
 
 ## 9. Next steps
 
 1. Second dataset with higher native resolution (blocked on sign-up). It decides whether merging has a role.
-2. Frozen-gallery student (Suma and Tolias style) as a baseline that has no full-cost deficit.
+2. Literature: cross-resolution / low-resolution-query re-ID and multi-budget asymmetric retrieval (not yet
+   searched); decide between the single-model method and the frozen-gallery student; frozen-gallery student
+   on the 216-epoch teacher.
 3. Gradient-conflict diagnostic; separate-classifier control; more ViT-B seeds and `sp_mixed` on ViT-B.
 
 ## Reproduction

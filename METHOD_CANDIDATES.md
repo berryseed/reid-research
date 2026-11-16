@@ -43,6 +43,10 @@ Asymmetric mAP = queries at budget b against the full gallery. All numbers: Mark
   cheaper input, is exactly their method (resolution knob, CNNs, CUB/Cars/SOP). The "same network, aligned at
   the start" point above is therefore **not** a difference from prior work. C1 is a baseline/component for us
   (new only in: token knob, re-ID, one student for several budgets, cost accounting), not a contribution.
+- **Result 2026-11-16 (`fg_mixed_s0-2`, label-free cosine term only, 96 student epochs, mixed budgets):**
+  asymmetric mAP 83.68 @1.62 G, 81.50 @1.41 G (r=11), 82.78 @1.12 G, 80.48 @0.72 G; full tokens 84.45 (the
+  teacher). Ties `sp_mixed` (C2) on low resolution, about 1 mAP below it under merging and at 128x64, +0.5 at
+  full tokens. Variants (a)-(d) below are not run. Details: RESEARCH_LOG.md 6.8.
 - **Expected advantages:** zero full-token deficit; no re-indexing; one forward+backward of the cheap pass per
   step plus a no-grad teacher pass, so cheaper than TBSD; label-free variant possible.
 - **Limitations:** two sets of weights (or adapters) to store; one student may not cover all budgets.
@@ -63,7 +67,10 @@ Asymmetric mAP = queries at budget b against the full gallery. All numbers: Mark
   one knob. Multi-knob compatibility was not found in the texts read (absence of evidence only).
 - **Risks:** could be "just augmentation"; may enlarge the full-token deficit.
 - **Compute:** same as TBSD or lower (low-resolution passes are cheaper).
-- **Validating experiments:** running now: `sp_lowres`, `sp_merge_r`, `sp_mixed`, 3 seeds each. Decisive
+- **Result 2026-11-16 (3 seeds each):** specialists do not transfer across knobs; `sp_mixed` is compatible
+  under both (83.60 / 82.38 / 83.01 / 81.50 at 1.62 / 1.41 / 1.12 / 0.72 G; full tokens 83.95). The full-token
+  deficit risk materialised (-1.16 vs the 216-epoch baseline). Details: RESEARCH_LOG.md 6.4.
+- **Validating experiments:** done: `sp_lowres`, `sp_merge_r`, `sp_mixed`, 3 seeds each. Decisive
   comparison: accuracy-vs-GFLOPs frontier of each trained model on each knob, and full-token mAP.
 
 ## C3. Protect the full-token objective: asymmetric gradient projection

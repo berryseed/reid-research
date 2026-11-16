@@ -4,10 +4,65 @@ Current state at a glance. Detailed chronological record with exact commands and
 `PROGRESS_LOG.md`. Background, decisions and literature: `PROJECT_CONTEXT.md`.
 All numbers are Market-1501, ViT-S/16 (ImageNet-21k->1k augreg weights), 256x128, 120 epochs, unless stated.
 
-_Last updated: 2026-11-16 22:45 local (end of session 3)._
+_Last updated: 2026-11-16 23:55 local (end of session 3, paused cleanly for a PC shutdown)._
 
-## Current status: IDLE (2026-11-16 22:45). Queue `run_iter3.sh` finished; nothing is running. First-iteration report written.
-- **Report: `REPORT_ITERATION1.md`** (paper comparison, gap, method, 3-seed evaluation, latency, ViT-B, limitations).
+## Current status: PAUSED CLEANLY (2026-11-16 23:50, PC shutdown at the user's request). Nothing is running.
+All queues are finished (`run_iter3.sh` phases M, E, D; `run_iter4.sh` phase F). There is **no partial run, no
+`ckpt.pth`, no STOP file**: nothing has to be resumed. All 9 checkpoints produced on 2026-11-16 (`sp_mixed_s1`, `sp_lowres_s2`,
+`sp_merge_r_s2`, `sp_mixed_s2`, `vitb_base_s0`, `vitb_tbsd_s0`, `fg_mixed_s0/1/2`) were loaded on the CPU and
+are finite. Everything except `*.pth` is pushed to GitHub.
+
+### Where we stopped (end of session 3)
+- **First research-iteration report: written**, `REPORT_ITERATION1.md` (paper comparison, gap, method, 3-seed
+  evaluation, measured latency, ViT-B check, frozen-gallery baseline, limitations, conclusions).
+- **Open decision (do not settle silently):** which scheme is "the method"? `sp_mixed` (one set of weights,
+  -1.16 mAP at full tokens) or the frozen-gallery student `fg_mixed` (prior-work style, two sets of weights, no
+  full-token loss, label-free second stage). They tie on low-resolution queries; `sp_mixed` is about 1 mAP
+  ahead under gradual merging and at 128x64 (suggestive only). Table below.
+- **Main risk to novelty:** resolution beats token merging on Market-1501 in accuracy and measured speed, and
+  resolution asymmetry is prior work (Suma and Tolias). Cross-resolution / low-resolution-query re-ID
+  literature has **not been searched yet**.
+
+### What to do first when resuming (in this order)
+1. Read `CLAUDE.md`, this file, `RESEARCH_LOG.md` Part 6, `REPORT_ITERATION1.md`.
+2. Confirm the machine is idle: `tasklist //FI "IMAGENAME eq python.exe"` and `nvidia-smi` (Git Bash).
+   Confirm sync: `git status -sb` (no ahead/behind), `git log origin/main -1`.
+3. **Literature first (no GPU):** search and read in full for (a) cross-resolution / low-resolution-query person
+   re-ID with a compatible high-resolution gallery, (b) one query model serving several budgets in asymmetric
+   retrieval (ACD CVPR 2026 Findings, AML, ROP), (c) ToCom, MatMamba, ThinkingViT. Update
+   `LITERATURE_MATRIX.md` section E. This decides whether the remaining gap survives.
+4. Ask the user / instructor about the open method decision above, or recommend one with the evidence.
+5. Then the experiments in "Remaining experiments" below. Ask the user about the CUHK03 sign-up.
+
+### Remaining experiments (none started; times are estimates from today's run times, not measurements)
+| # | Experiment | Why | Command sketch | Est. time |
+| --- | --- | --- | --- | --- |
+| 1 | Frozen-gallery student on the 216-epoch teacher, 3 seeds | Keeps 85.11 at full tokens by construction; tests whether the low-cost numbers follow the stronger teacher | as `run_iter4.sh` with `--teacher runs/base_e216_s$s/last.pth` and `--gallery-ckpt` the same file, out `runs/fg216_mixed_s$s` | 3 x (0.24 h + 2 min) = about 0.8 h |
+| 2 | Gradient-conflict diagnostic (cosine between full-pass and cheap-pass gradients during `sp_mixed` training) | Decides candidate C3 (protect the full-token objective); needs new code in `train.py` | new flag, 1 short run | about 0.5 h incl. coding |
+| 3 | Separate-classifier control for `sp_mixed`, 3 seeds | Tests whether the shared classifier is what makes budgets compatible | new flag in `train.py` | 3 x 0.45 h = about 1.4 h |
+| 4 | `sp_mixed` and `fg_mixed` on ViT-B, seed 0 (`--workers 2`) | Second backbone for the retained method (only TBSD was run on ViT-B) | `train.py --model vit_base_patch16_224 --sd-mode mixed --workers 2` | about 0.8 h + 0.5 h |
+| 5 | More seeds of the ViT-B baseline and probe | ViT-B numbers are 1 seed | as phase D with `--seed 1/2 --workers 2` | 2 x 1.3 h = about 2.6 h |
+| 6 | Second dataset (CUHK03-NP), loader + main table | The single most important missing piece | blocked on the user's sign-up | loader about 1 h; runs about 4-5 h |
+| 7 | Spatial-coverage test for class-attention selection | Unexplained negative result | evaluation only | about 0.5 h |
+
+### Frozen-gallery baseline vs our method, FINAL for Market-1501 / ViT-S (3 seeds, asymmetric mAP)
+| Query setting | GFLOPs | baseline 216 ep + ridge map | `sp_mixed` | `fg_mixed` |
+| --- | --- | --- | --- | --- |
+| full tokens | 2.93 | 85.11 | 83.95 ± 0.15 | 84.45 ± 0.49 (= teacher `base_s*`) |
+| low-res 224x112 | 2.22 | not tabulated | 83.91 ± 0.17 | 84.22 ± 0.49 |
+| gradual ToMe r=7 | 1.94 | 83.75 ± 0.03 | 83.70 ± 0.14 | 83.74 ± 0.53 |
+| low-res 192x96 | 1.62 | 82.80 ± 0.23 | 83.60 ± 0.14 | 83.68 ± 0.49 |
+| gradual ToMe r=11 | 1.41 | 79.70 ± 0.13 | 82.38 ± 0.27 | 81.50 ± 0.54 |
+| low-res 160x80 | 1.12 | 78.96 ± 0.18 | 83.01 ± 0.15 | 82.78 ± 0.55 |
+| low-res 128x64 | 0.72 | not measured | 81.50 ± 0.22 | 80.48 ± 0.69 |
+
+`fg_mixed`: `train.py --teacher runs/base_s$s/last.pth --sd-mode mixed --epochs 96` (label-free,
+loss `mean(1 - cos(student_cheap, teacher_full))`), evaluated with `mechanism.py --gallery-ckpt`. Student
+0.23 / 0.24 / 0.24 GPU-h, peak VRAM 1.83 GB; teacher + student about 0.46 GPU-h (about 20 % above the 216-epoch
+baseline). Per-seed teacher full-token mAP 83.89 / 84.71 / 84.75. Aggregates: `runs/fg_mechanism.csv`,
+`runs/fg_mechanism_agg.md`.
+
+### Session-3 summary (2026-11-16)
 - Phase E complete: 9 second-pass runs. Phase D complete: `vitb_base_s0` 86.38 mAP; `vitb_tbsd_s0` 83.68 (failed
   once on Windows error 1455 = system memory at the epoch-60 evaluation; resumed with `--workers 2`).
   **Use `--workers 2` for ViT-B runs on this machine.**
@@ -17,11 +72,14 @@ _Last updated: 2026-11-16 22:45 local (end of session 3)._
   (83.0 mAP at 1.12 G, 82.4 at 1.41 G) and beats the equal-GPU-hour baseline + linear map by +0.8 to +4.1 below
   1.7 GFLOPs, but is 1.16 below it at full tokens. Low-resolution queries beat gradual merging in accuracy and in
   measured speed; merging is 2.3x slower than full tokens at GPU batch 1. ViT-B (1 seed): TBSD full-token deficit
-  2.7 mAP; ViT-B is worse than ViT-S per GFLOP. ViT-S stays the main backbone.
-- **Next (needs the user):** second dataset sign-up (CUHK03). **Next (no input needed):** frozen-gallery student
-  baseline (Suma and Tolias style); gradient-conflict diagnostic; separate-classifier control; `sp_mixed` on
-  ViT-B; second-tier literature reads.
-- The state table below describes the pause of 2026-11-16 01:00 and is kept as history.
+  2.7 mAP; ViT-B is worse than ViT-S per GFLOP. ViT-S stays the main backbone. The frozen-gallery baseline ties
+  `sp_mixed` on low resolution without a full-token loss.
+- Mistakes made today, recorded so they are not repeated: (1) `CUDA_VISIBLE_DEVICES=""` does not hide the GPU
+  (use `-1`); a smoke test shared the GPU with `sp_mixed_s1` for about a minute. (2) A long inline shell script
+  failed on quoting; long text edits are now applied from files. (3) Student epochs were estimated at 0.11 min
+  and took 0.15 min, so the frozen-gallery budget is about 20 % over the intended equal budget.
+
+### History: state of the iteration-3 queue at the pause of 2026-11-16 01:00 (all of it has since finished)
 - **Research direction (user, 2026-11-15):** TBSD is an exploratory probe, not the contribution. Priorities:
   full-read literature review, gap reassessment, mechanism, own methodology. See `LITERATURE_MATRIX.md`,
   `METHOD_CANDIDATES.md`, RESEARCH_LOG.md Parts 4 and 5.
@@ -120,7 +178,11 @@ Reading:
   use only). Needs the user's acceptance.
 - **MSMT17:** request to the PKU authors. Slowest route.
 
-### Requirements for the first research-iteration report (checklist)
+### Requirements for the first research-iteration report (checklist) — ALL ADDRESSED on 2026-11-16 in `REPORT_ITERATION1.md`
+Status of each item: 1 done (six papers; Suma and Tolias read in full); 2 done (gap stated as "not found",
+narrowed further by our own latency and frozen-gallery results); 3 done (`sp_mixed`, with the frozen-gallery
+student as the open alternative); 4 done (3 seeds, all listed baselines); 5 done (`runs/latency_extra.csv`);
+6 and 7 done. The original wording is kept below as history.
 1. **Paper comparison (about 5-6 papers).** Proposed set: SFSC, D3still, SUReID, CSD (all read in full),
    ToMe and EViT (method sections and official code read), plus Suma and Tolias (resolution asymmetry; **still
    to read in full** because it is the closest prior work to the low-resolution result). Source:
@@ -215,7 +277,11 @@ Reading (one seed for controls, needs more seeds):
 Hypotheses: H1 reframed (asymmetric > symmetric; the real issue is query drift, which TBSD reduces);
 H2 untested; H3 not supported (seed 0); H4 untested. Figures: `runs/iter1_summary.png`, `runs/iter1_seeds.png`.
 
-## Remaining tasks (suggested order)
+## Remaining tasks (suggested order) — SUPERSEDED: iteration-1 list, kept as history
+**Use the "Remaining experiments" table and "What to do first when resuming" at the top of this file instead.**
+Of the list below: 1, 2, 4, the low-data part of 5 and the latency and ViT-B parts of 6 are done; 3 is still
+unexplained; the second dataset is blocked on sign-up; 7 continues (literature); 8 is replaced by
+`REPORT_ITERATION1.md`.
 1. Seeds 1–2 for the no-distillation control (decides whether distillation is a real contribution).
 2. Fix/ablate BNNeck running-stat mixing in TBSD (candidate cause of the -0.5 full-token cost).
 3. Investigate class-token-attention selection doing worse than random (official EViT with fused token).
