@@ -530,3 +530,34 @@ in-model image resize and position-embedding resampling, so they slightly overst
 confirmed the GFLOPs column against known values. Its timings are void: by my error it also used the GPU for
 about a minute while a training run was on it (an empty `CUDA_VISIBLE_DEVICES` does not hide the GPU). The real
 measurement will be run once, after the queue has finished and nothing else uses the machine.
+
+## 6.4 E13 complete: which cheap pass should the second training pass use? (3 seeds per variant)
+**Question.** Train one ViT with a full pass and a cheap pass per step. Does the kind of cheap pass (smaller
+image, gradual token merging, or a random choice of the two) decide under which kind of cheap *query* the model
+stays compatible with its full-token gallery?
+**Expectation recorded before seed 2:** seed 2 within a few tenths of seeds 0-1; ordering unchanged. Met.
+**Result (asymmetric mAP; full table in PROGRESS.md).**
+- Trained on resolution only: 82.4 at 160x80 but 79.6 under gradual merging (r = 11).
+- Trained on merging only: 82.9 at r = 11 but 79.9 at 160x80 and 73.0 at 128x64.
+- Trained on both: 83.0 at 160x80, 82.4 at r = 11, 81.5 at 128x64; full tokens 83.95.
+
+**Interpretation.**
+1. Compatibility is learned per knob. The earlier observation that robustness "transfers to a knob the model
+   never saw" (TBSD at low resolution) is true but partial: the transfer is a few mAP, far from what direct
+   training on that knob gives. The cosine between cheap and full embeddings shows the same thing: 0.865 at
+   160x80 for the merge-trained model against 0.962 / 0.953 for the two models that saw low resolution.
+2. Mixing the two families costs almost nothing on either, and on low resolution the mixed model is even better
+   than the specialist (+0.5 to +0.75 mAP, about three times the seed spread). Why is not known. One guess,
+   untested: the low-resolution specialist also has the lowest full-token accuracy (83.09), so its *gallery*
+   embeddings are worse, and every asymmetric number inherits that.
+3. How to read "better": with three seeds, a difference of two standard deviations (mixed vs merge specialist
+   at r = 11: 0.5 mAP) is suggestive only. Differences of 3-4 mAP against the equal-GPU-hour baseline at
+   1.1-1.4 GFLOPs are far outside the spread; +0.8 at 1.62 GFLOPs is real but small.
+4. Cost honesty: the "equal-GPU-hour" baseline (216 epochs, 0.36-0.38 h) was sized for TBSD (0.41 h). The merge
+   variant took 0.40-0.46 h, so it had about 15 % more GPU time; the low-resolution variant slightly less.
+5. The full-token deficit did not go away: 83.95 vs 85.11 for the mixed model. This is now the main weakness of
+   the method. Two candidate remedies are on file: gradient projection that protects the full-token objective
+   (C3, needs the gradient-conflict diagnostic first) and the frozen-gallery student (Suma and Tolias style),
+   which has no deficit by construction but needs a second set of weights.
+
+**Decision.** The method carried into the report is the mixed variant.

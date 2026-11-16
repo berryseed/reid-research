@@ -1,9 +1,8 @@
 # First research-iteration report: cheap queries against a full-cost gallery in ViT person re-ID
 
-**Status: DRAFT, 2026-11-16.** Sections 1-5, 6.1-6.3, 6.5 and 7 use completed 3-seed results.
-Section 6.4 (the proposed training variants) has 2 / 2 / 1 seeds and is **preliminary** until seed 2 finishes.
-Section 6.6 lacks the timing of low-resolution and gradual-merge queries. Section 8 is provisional for the
-same reason. One dataset (Market-1501) and one backbone (ViT-S/16) throughout.
+**Status: DRAFT, 2026-11-16 21:30.** All accuracy results are complete 3-seed results. Still missing:
+measured latency of low-resolution and gradual-merge queries (Section 6.6), a second dataset and a second
+backbone (Section 7). One dataset (Market-1501) and one backbone (ViT-S/16) throughout.
 Sources of every number: `PROGRESS.md`, `PROGRESS_LOG.md`, `runs/*/mech.csv`, `runs/*/sweep.csv`.
 
 ## 1. Problem and thesis
@@ -107,7 +106,7 @@ embedding drift, and the equal-budget cost account.
 ViT-S/16 (ImageNet-21k to 1k augreg weights, timm), Market-1501 (751 training identities, 12,936 images), input
 256x128, batch 64 (16 identities x 4 images), 120 epochs x 202 iterations, SGD, learning rate 0.008 with 5
 warm-up epochs then cosine decay, mixed precision. Peak VRAM about 4.9 GB on an RTX 5080. Two-pass runs take
-0.31-0.45 GPU-hours; the single-pass baseline 0.22.
+0.31-0.46 GPU-hours; the single-pass baseline 0.22.
 
 ## 5. Evaluation protocol
 
@@ -176,22 +175,45 @@ Training the ordinary model for the same GPU time, then using low-resolution que
 the probe at reduced cost and is 1.16 mAP better at full cost. On Market-1501 the probe as built is not
 justified.
 
-### 6.4 Proposed variants: gradual-merge and low-resolution second passes — PRELIMINARY (2 / 2 / 1 seeds)
-**Not results yet.** Seed 2 is training; this table will be replaced by 3-seed means ± std.
+### 6.4 Proposed variants: gradual-merge, low-resolution and mixed second passes (3 seeds each)
+Asymmetric mAP, full-token gallery, mean ± sample std. Source: `runs/sp_mechanism.csv`,
+`runs/sp_mechanism_agg.md`, `runs/sp_*/sweep.csv`. Values in brackets: with the closed-form linear map.
 
-| Query setting | GFLOPs | Baseline 120 ep | Baseline 216 ep (linear map) | TBSD probe | `sp_lowres` (2 seeds) | `sp_merge_r` (2 seeds) | `sp_mixed` (1 seed) |
+| Query setting | GFLOPs | Baseline 120 ep | Baseline 216 ep | TBSD probe | `sp_lowres` | `sp_merge_r` | `sp_mixed` |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| full tokens | 2.93 | 84.45 | 85.11 | 83.95 | 83.08 | 84.25 | 83.77 |
-| low-resolution 192x96 | 1.62 | 81.38 | 82.06 (82.80) | 81.91 | 82.84 | 82.72 | 83.46 |
-| gradual ToMe r = 11 | 1.41 | 77.45 | 78.97 (79.70) | 81.77 | 79.78 | 82.82 | 82.11 |
-| low-resolution 160x80 | 1.12 | 75.81 | 75.72 (78.96) | 78.26 | 82.37 | 79.84 | 82.84 |
-| low-resolution 128x64 | 0.72 | 60.13 | not measured | 69.26 | 80.91 | 72.83 | 81.25 |
+| full tokens | 2.93 | 84.45 ± 0.49 | 85.11 | 83.95 ± 0.13 | 83.09 ± 0.25 | 84.27 ± 0.07 | 83.95 ± 0.15 |
+| low-resolution 224x112 | 2.22 | 83.67 ± 0.49 | not tabulated | not tabulated | 83.07 ± 0.27 | 83.92 ± 0.08 | 83.91 ± 0.17 |
+| gradual ToMe r = 7 | 1.94 | not tabulated | 83.80 ± 0.04 | not tabulated | 82.18 ± 0.25 | 84.07 ± 0.06 | 83.70 ± 0.14 |
+| low-resolution 192x96 | 1.62 | 81.38 ± 0.36 | 82.06 ± 0.19 (82.80 ± 0.23) | 81.91 ± 0.32 | 82.85 ± 0.17 | 82.68 ± 0.10 (82.94) | **83.60 ± 0.14** |
+| gradual ToMe r = 11 | 1.41 | 77.45 ± 1.39 | 78.97 ± 0.12 (79.70 ± 0.13) | 81.77 ± 0.18 | 79.59 ± 0.37 | **82.90 ± 0.13** | 82.38 ± 0.27 |
+| low-resolution 160x80 | 1.12 | 75.81 ± 0.43 | 75.72 ± 0.51 (78.96 ± 0.18) | 78.26 ± 0.38 | 82.36 ± 0.19 | 79.89 ± 0.18 (81.00) | **83.01 ± 0.15** |
+| low-resolution 128x64 | 0.72 | 60.13 ± 2.68 | not measured | 69.26 ± 0.90 | 80.96 ± 0.20 | 73.04 ± 0.37 (76.31) | **81.50 ± 0.22** |
 
-Provisional reading, to be confirmed or withdrawn with seed 2:
-- each model is best on the knob it was trained on and transfers partly to the other; the mixed model is good
-  on both in its single seed;
-- below about 1.5 GFLOPs the variants are roughly 3-4 mAP ahead of the equal-GPU-hour baseline with a linear
-  map, and 0.9-2.0 mAP behind it at full cost. This is a trade-off, not a free gain.
+Training time per run (GPU-hours, three seeds): `sp_lowres` 0.36 / 0.31 / 0.37; `sp_merge_r` 0.44 / 0.40 / 0.46;
+`sp_mixed` 0.35 / 0.41 / 0.44; 216-epoch baseline 0.36-0.38. The budgets are therefore only approximately
+equal: `sp_merge_r` used about 15 % more GPU time than the baseline it is compared with, `sp_lowres` slightly
+less. The 0.41 of `sp_mixed` seed 1 is unreliable (resumed run; another process used the GPU for about a
+minute). Seed 2 of every variant ran slower than seeds 0-1, so timing noise between sessions is about 0.05 h.
+
+Reading:
+1. **Specialists do not transfer well.** A model trained with gradual-merge cheap passes falls to 73.0 mAP with
+   128x64 queries; a model trained with low-resolution cheap passes reaches 79.6 with gradual merging, which is
+   no better than the equal-GPU-hour baseline with a linear map (79.7).
+2. **The mixed model is compatible under both knobs.** It is the best of the three on every low-resolution
+   setting, including against the low-resolution specialist (+0.5 to +0.75 mAP, about three times the seed
+   spread), and 0.5 below the merge specialist under gradual merging (about two standard deviations with three
+   seeds: not clearly separated).
+3. **Against the equal-GPU-hour baseline with the linear map:** +4.1 mAP at 1.12 GFLOPs, +2.7 at 1.41, +0.8 at
+   1.62. At 1.62 GFLOPs the two specialists only tie that baseline (82.85 and 82.68-82.94 vs 82.80).
+4. **Full-cost price.** `sp_mixed` is 1.16 mAP below the 216-epoch baseline at full tokens (83.95 vs 85.11) and
+   0.5 below the 120-epoch baseline, the same deficit as the TBSD probe. `sp_merge_r` loses least (84.27).
+5. With 128x64 queries (0.72 GFLOPs, a quarter of the full cost) the mixed model keeps 81.5 mAP. Market-1501
+   crops are natively 128x64, so this number in particular must not be generalised (Section 7).
+6. Class-attention token selection remains far below random selection in all three variants (for example
+   `sp_merge_r`, keep 0.5: 41.5 vs 68.6).
+
+**Method retained for the next iteration: `sp_mixed`** (two-pass training with the cheap pass drawn from both
+families), with its full-cost deficit as the main open problem.
 
 ### 6.5 Ablations and rejected hypotheses (completed)
 - **Alignment term:** multi-budget training without it reaches 80.56 ± 0.07 at 3-stage keep 0.5, against 81.99
@@ -229,22 +251,24 @@ gradual merging and low-resolution queries, the two settings this report leans o
 6. GFLOPs are analytic estimates; the class-attention result is unexplained; gradient conflict between the two
    passes has not been measured.
 
-## 8. Conclusions and potential contributions (provisional)
+## 8. Conclusions and potential contributions (one dataset, one backbone)
 
 1. In ViT re-ID, the cost of a cheap query depends more on *where and how* tokens are removed than on how many:
    early, abrupt reduction is expensive; gradual merging and lower resolution are far cheaper in accuracy.
 2. Reported gains of token-budget training shrink sharply against the right baselines. An equal-GPU-hour
    baseline with low-resolution queries and a closed-form map is a strong, nearly free competitor, and it beat
    our first method.
-3. If seed 2 confirms Section 6.4: one ViT trained with gradual-merge and low-resolution cheap passes keeps
-   about 82-83 mAP at 1.1-1.6 GFLOPs (38-55 % of full cost) against a full-cost gallery, ahead of the
-   equal-budget baseline in that range, at the price of about 1 mAP at full cost.
+3. One ViT trained with a cheap pass drawn from both gradual merging and lower resolution stays compatible
+   with its own full-cost gallery under either knob: 82.4-83.6 mAP at 1.1-1.6 GFLOPs (38-55 % of full cost),
+   which is 0.8 to 4.1 mAP above the equal-GPU-hour baseline with a linear map in that range, at the price of
+   1.2 mAP at full cost. Training on one knob alone does not give compatibility on the other (3 seeds,
+   Market-1501 only).
 4. Negative results worth reporting: no low-data regularisation effect; class-attention token selection worse
    than random for cross-budget matching.
 
 ## 9. Next steps
 
-1. Finish seed 2 and replace Section 6.4; time the cheap-query settings (Section 6.6).
+1. Time the cheap-query settings on an idle machine (Section 6.6).
 2. Second dataset (blocked on sign-up).
 3. Frozen-gallery student (Suma and Tolias style) as a baseline that has no full-cost deficit.
 4. Gradient-conflict diagnostic; separate-classifier control; ViT-B reference.

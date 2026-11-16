@@ -6,12 +6,13 @@ All numbers are Market-1501, ViT-S/16 (ImageNet-21k->1k augreg weights), 256x128
 
 _Last updated: 2026-11-16 ~19:45 local (session 3, resumed after the shutdown)._
 
-## Current status: RUNNING (2026-11-16 19:02). Queue `run_iter3.sh E D` resumed; `sp_mixed_s1` continued from epoch 62.
-- Session 3 so far: Suma and Tolias read in full (LITERATURE_MATRIX.md A5; candidate C1 is prior work, now a
-  baseline); `bench_latency.py --extra` written (clean run pending, GPU must be idle); report draft
-  `REPORT_ITERATION1.md` pushed with sections 6.4 (seed 2) and 6.6 (latency of low-res / gradual merge) pending.
-- Still to do for the report: 3-seed table of `sp_*` (after phase E), clean latency run (after phase D),
-  final choice of the method variant, final pass over conclusions.
+## Current status: RUNNING (phase D since 2026-11-16 21:05: `vitb_base_s0`, then `vitb_tbsd_s0`, ViT-B latency).
+- **Phase E complete (21:05): all 9 second-pass runs, 3 seeds each, evaluated and pushed.** Final table below.
+- Session 3: Suma and Tolias read in full (LITERATURE_MATRIX.md A5; candidate C1 is prior work, now a
+  baseline); `bench_latency.py --extra` written; report `REPORT_ITERATION1.md` updated with the 3-seed results.
+- Still to do for the report: clean latency run of low-resolution / gradual-merge queries
+  (`.venv/Scripts/python.exe bench_latency.py --extra --out runs/latency_extra.csv`, only when nothing else uses
+  the GPU, i.e. after phase D); ViT-B numbers as a second-backbone note; final pass.
 - The state table below describes the pause of 2026-11-16 01:00 and is kept as history.
 - **Research direction (user, 2026-11-15):** TBSD is an exploratory probe, not the contribution. Priorities:
   full-read literature review, gap reassessment, mechanism, own methodology. See `LITERATURE_MATRIX.md`,
@@ -50,27 +51,30 @@ Checkpoints (`*.pth`) are local only (git-ignored); metrics are on GitHub.
   - `.venv/Scripts/python.exe train.py --data C:/Users/user/data/Market-1501-v15.09.15 --out runs/vitb_tbsd_s0 --resume --seed 0 --model vit_base_patch16_224 --sd-mode merge --sd-keep random`
   - `.venv/Scripts/python.exe bench_latency.py --model vit_base_patch16_224 --out runs/latency_vitb.csv`
 
-### Preliminary results of the second-pass variants (INCOMPLETE: 2 seeds / 2 seeds / 1 seed; not paper numbers)
-Asymmetric mAP, full-token gallery, Market-1501, ViT-S. Reference columns are complete 3-seed means.
-| Query setting | GFLOPs | baseline 120 ep | baseline 216 ep (ridge map) | TBSD 3-stage | `sp_lowres` (2 seeds) | `sp_merge_r` (2 seeds) | `sp_mixed` (1 seed) |
+### Second-pass variants, FINAL for Market-1501 / ViT-S (3 seeds each, mean ± std)
+Asymmetric mAP, full-token gallery. Brackets: with the closed-form linear (ridge) map. Aggregate:
+`runs/sp_mechanism.csv` -> `runs/sp_mechanism_agg.md`; full-token row from `runs/sp_*/sweep.csv`.
+| Query setting | GFLOPs | baseline 120 ep | baseline 216 ep | TBSD 3-stage | `sp_lowres` | `sp_merge_r` | `sp_mixed` |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| full tokens | 2.93 | 84.45 | 85.11 | 83.95 | 83.08 | 84.25 | 83.77 |
-| low-res 192x96 | 1.62 | 81.38 | 82.06 (82.80) | 81.91 | 82.84 | 82.72 | 83.46 |
-| gradual ToMe r=11 | 1.41 | 77.45 | 78.97 | 81.77 | 79.78 | 82.82 | 82.11 |
-| low-res 160x80 | 1.12 | 75.81 | 75.72 (78.96) | 78.26 | 82.37 | 79.84 | 82.84 |
-| low-res 128x64 | 0.72 | 60.13 | not tabulated here | 69.26 | 80.91 | 72.83 | 81.25 |
+| full tokens | 2.93 | 84.45 ± 0.49 | 85.11 | 83.95 ± 0.13 | 83.09 ± 0.25 | 84.27 ± 0.07 | 83.95 ± 0.15 |
+| low-res 192x96 | 1.62 | 81.38 ± 0.36 | 82.06 (82.80 ± 0.23) | 81.91 ± 0.32 | 82.85 ± 0.17 | 82.68 ± 0.10 (82.94) | 83.60 ± 0.14 |
+| gradual ToMe r=11 | 1.41 | 77.45 ± 1.39 | 78.97 (79.70 ± 0.13) | 81.77 ± 0.18 | 79.59 ± 0.37 | 82.90 ± 0.13 | 82.38 ± 0.27 |
+| low-res 160x80 | 1.12 | 75.81 ± 0.43 | 75.72 (78.96 ± 0.18) | 78.26 ± 0.38 | 82.36 ± 0.19 | 79.89 ± 0.18 (81.00) | 83.01 ± 0.15 |
+| low-res 128x64 | 0.72 | 60.13 ± 2.68 | not measured | 69.26 ± 0.90 | 80.96 ± 0.20 | 73.04 ± 0.37 (76.31) | 81.50 ± 0.22 |
 
-Training time (from the queue log): `sp_lowres` 0.36 / 0.31 h, `sp_merge_r` 0.44 / 0.40 h, `sp_mixed` 0.35 h;
-equal-GPU-hour baseline 0.38 h.
-Preliminary reading (to be confirmed with seed 2):
-- Expectation (a) met so far: a low-resolution second pass lifts low-resolution queries far above the untrained
-  model (82.4 vs 75.8 at 1.12 G; 80.9 vs 60.1 at 0.72 G) but costs more at full tokens (83.1 vs 84.45).
-- Expectation (b) met so far: a gradual-merge second pass loses least at full tokens (84.25 vs 84.45; still 0.9
-  below the equal-GPU-hour baseline 85.11) and reaches 82.8 at 1.41 G (+3.9 over the 216-epoch baseline).
-- (c) `sp_mixed`, one seed: good on both knobs, between the two at full tokens.
-- Unlike 3-stage TBSD, these variants are ahead of "equal-GPU-hour baseline + low-res + linear map" below
-  about 1.5 GFLOPs by roughly 3-4 mAP, if the third seed agrees. Caveat unchanged: Market-1501 is natively
-  128x64, so resolution results need a second dataset.
+Per-seed full-token mAP: `sp_lowres` 82.83 / 83.33 / 83.10; `sp_merge_r` 84.19 / 84.32 / 84.30; `sp_mixed`
+83.77 / 84.03 / 84.04. Train GPU-h: `sp_lowres` 0.36 / 0.31 / 0.37; `sp_merge_r` 0.44 / 0.40 / 0.46; `sp_mixed`
+0.35 / 0.41 (unreliable: resumed, GPU shared for about a minute) / 0.44; 216-epoch baseline 0.36-0.38.
+Reading:
+- Specialists do not transfer: `sp_merge_r` 73.0 at 128x64; `sp_lowres` 79.6 under gradual merging (= baseline
+  216 ep + map, 79.7).
+- **`sp_mixed` is compatible under both knobs**: best on all low-resolution settings (+0.5 to +0.75 over
+  `sp_lowres`, about 3x the seed spread), 0.5 below `sp_merge_r` at r=11 (about 2 std, not clearly separated).
+- vs equal-GPU-hour baseline + map: +4.1 (1.12 G), +2.7 (1.41 G), +0.8 (1.62 G). The specialists only tie it at 1.62 G.
+- Full-token price: `sp_mixed` -1.16 vs the 216-epoch baseline (same as TBSD); `sp_merge_r` loses least (-0.84).
+- Budgets are only approximately equal: `sp_merge_r` used about 15 % more GPU time than the 216-epoch baseline.
+- Caveat unchanged: Market-1501 is natively 128x64; resolution results need a second dataset.
+- **Method retained: `sp_mixed`.** Open problem: the full-token deficit.
 
 ### Earlier status notes
 - Iteration 2 (phases S, A, B, C of `run_iter2.sh`) is complete; all 16 low-data runs done and pushed.

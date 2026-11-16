@@ -480,3 +480,33 @@ Incomplete (seed 2 missing; `sp_mixed` one seed): not to be quoted as results. S
   not saved in the repo, (b) the train time of `sp_mixed_s1` is slightly inflated: do not use it as a timing.
 - Pending for the report: seed 2 of `sp_*`; clean latency run (`bench_latency.py --extra --out runs/latency_extra.csv`)
   only after the queue has finished.
+
+
+## 2026-11-16 21:05 — phase E complete (9 runs, 3 seeds per variant); phase D started
+- Queue log: `sp_mixed_s1` done 0.41 h (resumed; timing unreliable); `sp_lowres_s2` 19:23 -> 0.37 h;
+  `sp_merge_r_s2` 19:53 -> 0.46 h (mAP 84.3 / R1 93.8); `sp_mixed_s2` 20:30 -> 0.44 h (84.0 / 93.9). Each followed
+  by mech + sweep and auto-pushed. Phase D: `train vitb_base_s0` started 21:05:31.
+- Aggregate: `head -1 runs/sp_lowres_s0/mech.csv > runs/sp_mechanism.csv; for f in runs/sp_*_s[012]/mech.csv; do tail -n +2 $f >> runs/sp_mechanism.csv; done`
+  then `PYTHONUTF8=1 .venv/Scripts/python.exe aggregate_mech.py runs/sp_mechanism.csv > runs/sp_mechanism_agg.md`
+  (171 rows; full table with all selection rules and corrections in that file).
+- Full-token mAP / R1 per seed (`sweep.csv`, keep 1.0): sp_lowres 82.83/92.99, 83.33/92.93, 83.10/93.20;
+  sp_merge_r 84.19/93.82, 84.32/94.69, 84.30/93.76; sp_mixed 83.77/93.79, 84.03/93.56, 84.04/93.88.
+  Means ± std: 83.09 ± 0.25, 84.27 ± 0.07, 83.95 ± 0.15.
+- A first attempt to write these log entries failed on shell quoting before running anything; redone from files.
+
+### Final phase E table, asymmetric mAP raw (ridge map), 3 seeds
+| setting | GFLOPs | sp_lowres | sp_merge_r | sp_mixed |
+| --- | --- | --- | --- | --- |
+| merge 3-stage 0.7 | 1.92 | 82.11 ± 0.25 | 83.80 ± 0.11 | 83.43 ± 0.23 |
+| gradual ToMe r=7 | 1.94 | 82.18 ± 0.25 | 84.07 ± 0.06 | 83.70 ± 0.14 |
+| random 0.7 | 1.92 | 78.69 ± 0.31 | 80.39 ± 0.27 | 80.34 ± 0.28 |
+| cls_attn EViT-fuse 0.7 | 1.95 | 72.87 ± 1.33 | 73.90 ± 1.11 | 72.22 ± 2.10 |
+| merge 3-stage 0.5 | 1.46 | 74.97 ± 0.50 (76.29) | 79.76 ± 0.19 (80.02) | 79.34 ± 0.29 (79.53) |
+| gradual ToMe r=11 | 1.41 | 79.59 ± 0.37 (79.87) | 82.90 ± 0.13 (82.69) | 82.38 ± 0.27 (82.16) |
+| random 0.5 | 1.46 | 64.15 ± 0.39 | 68.59 ± 0.14 | 68.41 ± 0.56 |
+| cls_attn EViT-fuse 0.5 | 1.49 | 39.30 ± 3.96 | 41.52 ± 0.29 | 35.52 ± 4.50 |
+| low-res 224x112 | 2.22 | 83.07 ± 0.27 | 83.92 ± 0.08 | 83.91 ± 0.17 |
+| low-res 192x96 | 1.62 | 82.85 ± 0.17 (82.62) | 82.68 ± 0.10 (82.94) | 83.60 ± 0.14 (83.39) |
+| low-res 160x80 | 1.12 | 82.36 ± 0.19 (82.11) | 79.89 ± 0.18 (81.00) | 83.01 ± 0.15 (82.79) |
+| low-res 128x64 | 0.72 | 80.96 ± 0.20 (80.67) | 73.04 ± 0.37 (76.31) | 81.50 ± 0.22 (81.25) |
+Query cosine to the full-token embedding (q_cos) at 160x80: 0.962 / 0.865 / 0.953; at r=11: 0.920 / 0.952 / 0.953.
