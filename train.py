@@ -59,6 +59,11 @@ def get_args():
                    help="BNNeck in the reduced pass: 'shared' also updates the running statistics (original "
                         "behaviour); 'nostat' normalises with batch statistics but leaves the running "
                         "statistics to the full-token pass only")
+    p.add_argument("--teacher", default=None,
+                   help="frozen-gallery student mode: path to a trained last.pth. The model starts as a copy of it "
+                        "and is trained WITHOUT labels so that its cheap pass (--sd-mode, required) reproduces the "
+                        "frozen teacher's full-token BNNeck embedding: loss = mean(1 - cos(student_cheap, "
+                        "teacher_full)). In the style of Suma & Tolias (WACV 2023), absolute term only.")
     p.add_argument("--eval-every", type=int, default=20)
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--seed", type=int, default=0)
@@ -92,6 +97,17 @@ def main():
 
     train_items, query, gallery, num_classes = load_market(args.data, args.id_fraction, args.seed)
     model = ReIDViT(args.model, num_classes, img_size, pretrained=not args.no_pretrained).to(device)
+    teacher = None
+    if args.teacher:
+        if args.sd_mode == "none":
+            raise ValueError("--teacher needs a cheap pass: set --sd-mode (e.g. mixed)")
+        tck = torch.load(args.teacher, map_location="cpu", weights_only=False)  # our own file
+        if tck["num_classes"] != num_classes:
+            raise ValueError("teacher was trained on a different identity set")
+        model.load_state_dict(tck["model"])                      # student starts as an exact copy
+        teacher = ReIDViT(args.model, num_classes, img_size, pretrained=False).to(device)
+        teacher.load_state_dict(tck["model"])
+        teacher.eval().requires_grad_(False)                     # the gallery encoder never changes
     cfg = model.vit.pretrained_cfg
     train_tf, test_tf = build_transforms(img_size, cfg.get("mean", (0.5,) * 3), cfg.get("std", (0.5,) * 3))
 
@@ -129,7 +145,7 @@ def main():
         # our own file; weights_only=False is needed for the Python/NumPy RNG states
         ck = torch.load(ckpt_path, map_location="cpu", weights_only=False)
         for k in ("model", "lr", "epochs", "P", "K", "seed", "sd_mode", "train_mode", "id_fraction",
-                  "sd_weight", "sd_bn", "sd_keep", "train_keep"):
+                  "sd_weight", "sd_bn", "sd_keep", "train_keep", "teacher"):
             if ck["args"].get(k) != vars(args).get(k):
                 raise ValueError(f"--{k} differs from the checkpoint ({ck['args'].get(k)} vs {vars(args).get(k)})")
         model.load_state_dict(ck["model"])
@@ -146,6 +162,8 @@ def main():
               f"{train_seconds / 3600:.2f} h trained", flush=True)
     for epoch in range(start_epoch, args.epochs + 1):
         model.train()
+        if teacher is not None:
+            model.bnneck.eval()  # student embedding computed as at test time (teacher's running statistics)
         t0 = time.perf_counter()
         sums = {"loss": 0.0, "id": 0.0, "tri": 0.0, "sd": 0.0}
         for imgs, labels, _ in train_loader:
@@ -153,12 +171,30 @@ def main():
             for g in optim.param_groups:
                 g["lr"] = lr_at(step)
             with torch.autocast(device_type=device.type, enabled=amp):
-                feat, bn, logits = model(imgs, args.train_mode, args.train_keep)
-                l_id = F.cross_entropy(logits.float(), labels, label_smoothing=args.label_smooth)
-                l_tri = batch_hard_triplet(feat, labels, args.margin)
-                loss = l_id + l_tri
-                l_sd = torch.zeros((), device=device)
-                if use_sd:
+                if teacher is not None:
+                    # frozen-gallery student: no labels, only the cheap pass has gradients
+                    with torch.no_grad():
+                        bn_t = teacher(imgs)[1]                       # full-token target (same augmented image)
+                    sd_mode, keep, sd_hw = args.sd_mode, 1.0, None
+                    if sd_mode == "mixed":
+                        sd_mode = random.choice(("lowres", "merge_r"))
+                    if sd_mode == "lowres":
+                        sd_mode, sd_hw = "none", random.choice(SD_RES)
+                    elif sd_mode == "merge_r":
+                        model.tome_r = random.choice(SD_RS)
+                    else:
+                        keep = random.choice(SD_KEEPS) if args.sd_keep == "random" else float(args.sd_keep)
+                    bn_s = model(imgs, sd_mode, keep, sd_hw)[1]
+                    l_sd = (1 - F.cosine_similarity(bn_s.float(), bn_t.float(), dim=1)).mean()
+                    l_id = l_tri = torch.zeros((), device=device)
+                    loss = l_sd
+                else:
+                    feat, bn, logits = model(imgs, args.train_mode, args.train_keep)
+                    l_id = F.cross_entropy(logits.float(), labels, label_smoothing=args.label_smooth)
+                    l_tri = batch_hard_triplet(feat, labels, args.margin)
+                    loss = l_id + l_tri
+                    l_sd = torch.zeros((), device=device)
+                if use_sd and teacher is None:
                     keep = random.choice(SD_KEEPS) if args.sd_keep == "random" else float(args.sd_keep)
                     sd_mode, sd_hw = args.sd_mode, None
                     if sd_mode == "mixed":

@@ -34,6 +34,10 @@ def get_args():
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--train-step", type=int, default=2, help="use every n-th training image for the fits")
     p.add_argument("--lam", type=float, default=1.0, help="ridge strength for the linear map")
+    p.add_argument("--gallery-ckpt", default=None,
+                   help="frozen-gallery evaluation: the gallery and all full-token reference embeddings come from "
+                        "this checkpoint (the teacher); the cheap-query settings run through --ckpts (the student). "
+                        "q_cos is then cos(student cheap, teacher full)")
     return p.parse_args()
 
 
@@ -123,7 +127,13 @@ def main():
             print(f"cached {cached[0][0].shape[0]} query and {cached[1][0].shape[0]} training images", flush=True)
         (qx, qp, qc), (tx, _, _) = cached
 
-        full = lambda im: model(im, "none", 1.0)[1]
+        ref = model
+        if args.gallery_ckpt:
+            gk = torch.load(args.gallery_ckpt, map_location="cpu", weights_only=True)
+            ref = ReIDViT(gk["args"]["model"], gk["num_classes"], img_size, pretrained=False)
+            ref.load_state_dict(gk["model"])
+            ref.to(device).eval()
+        full = lambda im: ref(im, "none", 1.0)[1]
         gfs, gps, gcs = [], [], []
         with torch.no_grad():
             for imgs, pid, cam in g_loader:
@@ -133,7 +143,7 @@ def main():
         gf, gp, gc = torch.cat(gfs), torch.cat(gps).numpy(), torch.cat(gcs).numpy()
         qf, tf_full = embed(full, qx, device, args.batch), embed(full, tx, device, args.batch)
         base_map = evaluate_rank(qf, gf, qp, gp, qc, gc, device)[0]
-        g_full = vit_gflops(model)
+        g_full = vit_gflops(ref)  # ref has just run full-token passes (model may not have, with --gallery-ckpt)
         print(f"== {path}: full-token mAP {base_map:.2f}, {g_full:.3f} GFLOPs", flush=True)
 
         def run(name, fn, gflops):
