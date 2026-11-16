@@ -5,3 +5,8 @@ done. train time 0.23 h, checkpoint: runs/fg_mixed_s0\last.pth
 === mech fg_mixed_s0 (gallery from runs/base_s0/last.pth) Mon Nov 16 23:07:01 BST 2026
 pushed fg_mixed_s0
 === train fg_mixed_s1 (teacher runs/base_s1/last.pth) Mon Nov 16 23:08:47 BST 2026
+epoch  96/96 loss 0.038 id 0.000 tri 0.000 sd 0.038 | 14.3 min | mAP 84.9 R1 94.1
+done. train time 0.24 h, checkpoint: runs/fg_mixed_s1\last.pth
+=== mech fg_mixed_s1 (gallery from runs/base_s1/last.pth) Mon Nov 16 23:26:12 BST 2026
+pushed fg_mixed_s1
+=== train fg_mixed_s2 (teacher runs/base_s2/last.pth) Mon Nov 16 23:28:00 BST 2026
