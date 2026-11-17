@@ -46,7 +46,7 @@ model that stays compatible?
 - 32,668 cropped images of 1,501 people from 6 cameras on a university campus.
 - **Training set:** 12,936 images of 751 people. **Test set:** 750 other people (no overlap with training).
 - **Query set:** 3,368 images. **Gallery:** 19,732 files, of which 3,819 are "junk" (label −1: bad crops)
-  and are removed by every standard toolkit, leaving **15,913** gallery images; 2,793 of those are
+  and are removed by every standard toolkit, leaving **15,913** gallery images; 2,798 of those are
   **distractors** (label 0000: people or background not in the query set), kept on purpose to make search harder.
 - File names encode identity and camera, e.g. `0002_c1s1_000451_03.jpg` = person 2, camera 1.
 - Crops are natively about **128x64 pixels**. We resize them to 256x128 (the usual re-ID input), so the network

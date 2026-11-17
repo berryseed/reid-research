@@ -185,7 +185,7 @@ actual token count of every block. Latency is measured separately (Section 6.6),
 
 - **Data:** Market-1501. Train: 12,936 images of 751 identities. Test: 3,368 queries; gallery 19,732 files,
   of which the 3,819 junk images (label −1) are removed as in standard toolkits, leaving 15,913 (including
-  2,793 distractors). Standard protocol: same-identity same-camera gallery images are ignored per query.
+  2,798 distractors, label 0000; counts verified on the files). Standard protocol: same-identity same-camera gallery images are ignored per query.
 - **Metrics:** mAP (main) and Rank-1. **Asymmetric** = cheap queries against the full-cost gallery.
   `q_cos` = mean cosine between an image's cheap and full embeddings (drift).
 - **Training recipe (all runs):** batch 64 (16 identities x 4 images), 120 epochs x 202 iterations, SGD

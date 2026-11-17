@@ -67,8 +67,8 @@ PrunNet (arXiv 2504.11879, April 2025) in full; QuARI (NeurIPS 2025, query-adapt
 only, and I say so. Abstract-level reading is never used to claim a paper lacks something.
 
 **B6. How thorough was the literature search?**
-About 40 searches; nine papers read in full (four of them through a summarising tool: SFSC, Suma and Tolias,
-PrunNet, ResFormer, RFD; D3still and SUReID directly; ToMe and EViT through their code). The matrix with reading
+About 40 searches; seven papers read in full text (five through a summarising tool: SFSC, Suma and Tolias,
+PrunNet, ResFormer, RFD; two directly: D3still and SUReID) and two through their official code (ToMe, EViT). The matrix with reading
 depth for each entry is `LITERATURE_MATRIX.md`. "Not found" means not found in what was read.
 
 ## C. Method
