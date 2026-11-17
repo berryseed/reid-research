@@ -695,3 +695,58 @@ Nothing is running and nothing is partial. The order of work for the next sessio
 ("What to do first when resuming"): literature search on cross-resolution re-ID and multi-budget asymmetric
 retrieval first (no GPU, and it decides whether the gap survives), then the method decision, then the
 experiments in the "Remaining experiments" table.
+
+# Part 7. Session 4 (2026-11-17): literature pass that decides the gap
+
+## 7.1 Resume check
+Nothing was running or partial (no python.exe, GPU idle, no `ckpt.pth` or STOP file); local `main` equal to
+`origin/main` at da52f10; `REPORT_ITERATION1.md` identical to the committed version. As recorded at the pause,
+the first task was literature, because it decides whether the remaining gap survives, and it needs no GPU.
+
+## 7.2 Why these searches
+Our strongest result is that a model trained with low-resolution cheap views keeps about 83 mAP with
+downsized queries against a full-resolution gallery. Three bodies of work could already cover it:
+cross-resolution re-ID (a known sub-field: low-resolution queries, high-resolution gallery), multi-budget
+compatible retrieval (one network, several costs), and multi-resolution ViT training.
+
+## 7.3 What was found (details and citations: LITERATURE_MATRIX.md section F)
+1. **PrunNet (arXiv 2504.11879, 2025).** One network with pruned subnetworks of 20-80 % of the weights, all
+   compatible with the dense network, including a ViT-Small and Market-1501 / MSMT17, with gradient-conflict
+   projection. So "one set of weights serving several compatible re-ID budgets" is closed as a gap, and our
+   candidate C3 (protect the full objective by projecting gradients) is close to what it already does. It
+   prunes weights, not the input, and it reports no measured speed; its authors say unstructured sparsity is
+   hard to accelerate.
+2. **ResFormer (CVPR 2023).** Copies of each image at several resolutions; the detached class token at the
+   higher resolution teaches the one at the lower resolution. That is the training mechanism of our
+   low-resolution second pass. It is used for classification and dense tasks, not for retrieval, and it never
+   matches a low-resolution embedding against high-resolution embeddings of other images.
+3. **Cross-resolution re-ID (RFD, arXiv 2109.07871, and the methods it lists).** Same matching geometry as
+   ours, but resolution is a degradation: low-resolution images are upsampled back to the full network input
+   (or super-resolved) before the network, so the query costs at least full compute. Resolution is not used to
+   save compute in the work read.
+4. Two direct searches for "token-reduced or low-resolution ViT queries against a compatible full-cost re-ID
+   gallery" found nothing (absence of evidence only).
+
+## 7.4 What this means (my assessment)
+Every component of what we built is prior work: the mechanism (ResFormer), the alignment loss (D3still,
+Suma and Tolias), one-network multi-budget compatibility (SFSC, PrunNet), the frozen gallery with a
+same-architecture cheap student (Suma and Tolias). What remains, as far as the reading goes, is a setting
+and an evaluation: input-side compute knobs (resolution, token count) of one ViT re-ID model for compatible
+retrieval, measured in latency, against equal-budget baselines. Our own results add that resolution dominates
+token merging on Market-1501 and that the prior-work-style frozen-gallery student matches our single-model
+method on low resolution.
+
+The project rule is that novelty is mandatory. On the evidence, the current work supports an empirical study,
+not a method contribution. Three ways forward are written into REPORT_ITERATION1.md Section 9: (a) frame it as
+an empirical study; (b) add a mechanism none of the above has, for example per-query budget selection
+(spend full compute only on queries whose cheap embedding is likely to drift), which needs its own literature
+check first, starting with dynamic-token ViTs such as DVT; (c) native-resolution data, where token merging
+might keep information that downsizing loses. Choosing among them changes the research objective, so it is
+put to the user rather than decided here.
+
+## 7.5 Limits of this pass
+- Reading depth is `FULL-S` (summarising tool) for all three papers; equations are as the tool reported them.
+- PrunNet's Market-1501 numbers were not extracted.
+- Only one cross-resolution re-ID paper was read in full; the claim "the query is upsampled" rests on it and on
+  its own description of related methods. CRGAN, MRJL and newer cross-resolution work are leads, not reads.
+- FlexiViT and NaViT were not retrieved.

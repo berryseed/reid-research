@@ -588,3 +588,22 @@ ViT-B latency (`runs/latency_vitb.csv`): full 6.16 ms GPU b1, 0.328 ms/img GPU b
   `vitb_tbsd_s0` (345.4 MB), `fg_mixed_s0/1/2` (87.8 MB). Earlier checkpoints were verified at the previous pause.
 - No python.exe; GPU 0 %, 1.5 GB (desktop); no `runs/*/STOP`; no `runs/*/ckpt.pth` (no partial run).
 - Nothing to resume. Next-session order of work: PROGRESS.md "What to do first when resuming".
+
+
+## 2026-11-17 — session 4: resume and literature pass (no GPU used)
+- Resume checks: no python.exe; GPU 4 %, 1.6 GB (desktop); no `runs/*/ckpt.pth`, no STOP; `git status -sb`
+  in sync, `origin/main` da52f10; `git diff REPORT_ITERATION1.md` empty.
+- Searches (WebSearch, extended unless stated): "cross-resolution person re-identification low-resolution
+  query high-resolution gallery vision transformer"; "resolution-invariant person re-identification single
+  model multiple resolutions without super-resolution MLR-Market-1501"; "asymmetric image retrieval one query
+  model multiple computational budgets compatible embeddings elastic"; "FlexiViT ResFormer multi-resolution
+  training ..." (standard); "person re-identification efficient query low resolution ... token reduction
+  asymmetric"; "token merging token pruning compatible embeddings asymmetric retrieval ...".
+- Full reads (WebFetch, summarising tool): arxiv.org/html/2504.11879 (PrunNet, two passes, offset 100000 =
+  proof + references); arxiv.org/html/2109.07871 (RFD); ar5iv.labs.arxiv.org/html/2212.00776 (ResFormer; the
+  arXiv PDF was unreadable). Abstract pages: 2109.07871, 2212.00776, 2105.12684 (MRJL).
+- Edits: LITERATURE_MATRIX.md section F (F1 PrunNet, F2 ResFormer, F3 RFD, F4 unread leads, F5 gap);
+  REPORT_ITERATION1.md section 2 (items 6-8), section 3 rewritten ("Preliminary gap (revised 2026-11-17)"),
+  section 9 (framing options a/b/c); RESEARCH_LOG.md Part 7; PROGRESS.md and CLAUDE.md state.
+- Outcome: all components of the method are prior work; remaining gap = input-side compute knobs for
+  compatible re-ID retrieval with measured latency and equal-budget accounting. Framing decision put to the user.

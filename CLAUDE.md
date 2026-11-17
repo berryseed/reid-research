@@ -87,6 +87,18 @@ modify files or run experiments. Explanations go **in the conversation**, not on
 - To pause the project safely: STOP-file the running run (or let it finish), wait for the process to exit,
   commit/push metrics, confirm no python.exe from `.venv` is running.
 
+## Session 4 (2026-11-17): literature pass done, framing decision pending (details: RESEARCH_LOG.md Part 7)
+- PrunNet (arXiv 2504.11879), ResFormer (CVPR 2023) and RFD (cross-resolution re-ID) read in full
+  (`FULL-S`, LITERATURE_MATRIX.md section F). **Every component of our method is prior work.** Remaining
+  gap (not found): input-side compute knobs of one ViT re-ID model compatible with its own full-cost
+  gallery, with measured latency and equal-budget accounting = an empirical study, not a method.
+- **Do not start new experiments until the user chooses the framing** (REPORT_ITERATION1.md Section 9):
+  (a) empirical study, (b) a new mechanism such as per-query budget selection (read DVT and
+  dynamic-token ViTs first), (c) native-resolution data (needs the CUHK03 sign-up). This is a change of
+  research objective, so it is the user's call under the autonomy rules.
+- Do not describe the low-resolution second pass or one-network multi-budget compatibility as new
+  (ResFormer; SFSC, PrunNet).
+
 ## State at the end of session 3 (2026-11-16 23:50, PC shutdown; details: PROGRESS.md, RESEARCH_LOG.md Part 6)
 - **Nothing is running and nothing is partial.** `run_iter3.sh` (phases M, E, D) and `run_iter4.sh` (phase F) are
   finished. No `ckpt.pth`, no STOP file, nothing to resume. All metrics pushed; `*.pth` local only.

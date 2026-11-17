@@ -222,6 +222,85 @@ What changed:
    and five merge rates with one set of weights. Whether that is "new" depends on the unread papers above
    (ACD, ToCom, MatMamba, ThinkingViT in particular) and must not be claimed before they are read.
 
+## F. Literature pass of 2026-11-17 (session 4): cross-resolution re-ID, multi-budget retrieval, multi-resolution ViTs
+
+Searches (WebSearch, 6 queries): cross-resolution re-ID with ViTs; resolution-invariant re-ID without
+super-resolution on MLR-Market-1501; one query model for several budgets in asymmetric retrieval; FlexiViT /
+ResFormer multi-resolution ViTs; efficient low-resolution / token-reduced re-ID queries with a compatible
+gallery; token merging or pruning for compatible / asymmetric retrieval.
+
+### F1. PrunNet — Learning Compatible Multi-Prize Subnetworks for Asymmetric Retrieval
+- **Bibliographic:** Yushuai Sun, Zikun Zhou, Dongmei Jiang, Yaowei Wang, Jun Yu, Guangming Lu, Wenjie Pei
+  (HIT Shenzhen, Pengcheng Lab). arXiv 2504.11879 v1, 16 Apr 2025; venue not stated on the page read. Code
+  github.com/Bunny-Black/PrunNet. Depth: `FULL-S` (HTML, all 120k characters read in two passes; the
+  Market-1501 table of Appendix F exists but its numbers were not extracted by the tool).
+- **What is made cheap:** weights. One dense network; subnetworks keep the top-c % of connections per layer by
+  a learned score (default 20/40/60/80 %; also 6.25-56.25 % and 10 %). Unstructured; normalisation layers
+  shared; BatchNorm statistics recomputed per subnetwork after training. A kernel-level structured variant
+  only in Appendix G.
+- **Compatibility:** subnetworks are trained to be compatible with the dense network (shared classifier /
+  logit-space alignment as in BCT and SFSC); labels used. Gradient conflicts: projection of conflicting pairs
+  plus re-weighting (alpha = 0.5), per kernel and per linear layer.
+- **Backbones:** ResNet-18/50, ResNeXt-50, MobileNet-V2, **ViT-Small** (prunable linear layers in attention
+  and MLP). Tokens and input resolution not stated as knobs.
+- **Datasets:** GLDv2 subset, ROxford, RParis, In-shop, VeRi-776, CUB-200 (ViT-S), **Market-1501 and MSMT17**
+  (Appendix F, ResNet-18).
+- **Baselines:** independent, joint, O2O-SSPL, BCT-S, Asymmetric-S, SFSC, Pareto integration. D3still and AML
+  not compared. Example: VeRi-776 self-test mAP 67.82 / 67.11 / 64.45 / 54.45 (dense / 56.25 / 25 / 6.25 %)
+  vs SFSC 66.11 / 62.62 / 58.13 / 50.34.
+- **Costs:** no FLOPs, parameter, latency or training-time numbers in the text (a figure plots mAP against
+  storage and theoretical FLOPs). Limitation stated: unstructured sparsity is hard to accelerate on hardware.
+- **Relative to ours:** closes "one set of weights, several compatible budgets, ViT, re-ID" as a gap. Its
+  conflict handling is our candidate C3 in substance. Differs: weights vs input (tokens / resolution); no
+  measured speed-up vs our measured latency.
+
+### F2. ResFormer — Scaling ViTs with Multi-Resolution Training
+- **Bibliographic:** Rui Tian, Zuxuan Wu, Qi Dai, Han Hu, Yu Qiao, Yu-Gang Jiang. CVPR 2023. arXiv 2212.00776.
+  Code github.com/ruitian12/resformer. Depth: `FULL-S` (ar5iv HTML; the arXiv PDF was unreadable to the tool).
+- **Method:** each training image replicated at several resolutions (main: 128, 160, 224); scale consistency
+  loss = smooth L1 with feature whitening from the **detached** class token at a higher resolution to the class
+  token at the next lower resolution; global-local positional embedding (sine-cosine refined by depth-wise
+  convolution, plus a per-head 3x3 depth-wise convolution on values). One model, one resolution at test time.
+- **Tasks:** ImageNet-1K (+ robustness sets), ADE20K, COCO, Kinetics-400. No retrieval, metric learning or
+  re-ID. No cross-resolution matching at test time. No per-resolution FLOPs or latency.
+- **Relative to ours:** **the training mechanism of `sp_lowres` (detached higher-resolution embedding teaching
+  the lower-resolution one in the same network) is ResFormer's.** Differs: retrieval with a cross-resolution
+  compatibility requirement, BNNeck/cosine instead of class token/smooth L1, cost accounting.
+
+### F3. RFD — Resolution based Feature Distillation for Cross Resolution Person Re-Identification
+- **Bibliographic:** Asad Munir, Chengjin Lyu, Bart Goossens, Wilfried Philips, Christian Micheloni.
+  arXiv 2109.07871 v1, 16 Sep 2021; no venue on the page; no code link. Depth: `FULL-S` (arXiv HTML).
+- **Setting (typical of cross-resolution re-ID):** queries downsampled by 2/3/4 (bicubic) against a
+  high-resolution gallery (MLR-Market1501, MLR-DukeMTMC-reID); CAVIAR with real low resolution. **Training
+  low-resolution images are upsampled back to the original size and resized to 384x128 for the network**;
+  test-time handling not stated explicitly. ResNet-50, MGN-style branches, channel attention.
+- **Method:** two separately trained networks (identity, resolution class); at test time the resolution
+  similarity is subtracted from the identity distance (lambda = 0.1). Not teacher-student distillation.
+- **Numbers:** MLR-Market R1 86.9 (baseline 85.5); MLR-Duke 82.9; CAVIAR 47.6. No mAP. No cost reported.
+- **Related methods as it describes them:** SING, RIPR, CSR-GAN, MSA (super-resolution before re-ID); RAIN,
+  CRGAN (align low- and high-resolution feature distributions); PRI, INTACT (predict a scale factor and upscale
+  the query before matching).
+- **Relative to ours:** same matching geometry (low-resolution query, high-resolution gallery) but resolution
+  is a **degradation** and the query runs at full input size or larger, so no compute is saved. In this paper
+  and the methods it lists, resolution is not a compute knob. Not verified for CRGAN, RAIN, MRJL by full read.
+
+### F4. Leads not read (abstract or snippet only; must not be used for absence claims)
+- MRJL, "Low Resolution Information Also Matters" (Zhang et al., IJCAI 2021, arXiv 2105.12684): one encoder,
+  two decoders reconstructing high/low resolution, dual-branch fusion; query handling not stated on the abstract page.
+- CRGAN, "Recover and Identify" (Li et al., ICCV 2019): resolution-invariant features + image recovery; a single
+  model for varying and unseen resolutions (snippet).
+- Cross-model compatible ensembles for asymmetric retrieval (arXiv 2303.17531); SSPL (arXiv 2403.00648);
+  TE-TransReID (efficient transformer re-ID, unverified snippet); FlexiViT and NaViT (not retrieved).
+- DVT, "Not All Images are Worth 16x16 Words" (NeurIPS 2021, prior knowledge): cascade of token counts with
+  early exit for classification. **Read before pursuing per-query budget selection.**
+
+### F5. Gap after this pass
+All components of our method are prior work (ResFormer mechanism; D3still / Suma-Tolias loss; SFSC / PrunNet
+one-network multi-budget compatibility; Suma-Tolias frozen gallery). Not found: input-side query budgets of
+one ViT re-ID model as a compute knob with compatibility to its own full-cost gallery, two input knobs at once,
+measured latency and equal-budget accounting. This supports an empirical study; a method contribution needs a
+mechanism absent from all of the above (see REPORT_ITERATION1.md Section 9).
+
 Open literature questions for the next session:
 - Does any asymmetric-retrieval paper train one query model for several budgets (ACD, AML, ROP)?
 - Is there a re-ID paper on resolution-asymmetric or low-resolution-query retrieval with a compatible gallery

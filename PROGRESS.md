@@ -4,7 +4,20 @@ Current state at a glance. Detailed chronological record with exact commands and
 `PROGRESS_LOG.md`. Background, decisions and literature: `PROJECT_CONTEXT.md`.
 All numbers are Market-1501, ViT-S/16 (ImageNet-21k->1k augreg weights), 256x128, 120 epochs, unless stated.
 
-_Last updated: 2026-11-16 23:55 local (end of session 3, paused cleanly for a PC shutdown)._
+_Last updated: 2026-11-17 (session 4: literature pass; waiting on the framing decision)._
+
+## Session 4 (2026-11-17): literature pass done; WAITING on the user's framing decision. Nothing is running.
+- Read in full (`FULL-S`): **PrunNet** (arXiv 2504.11879: one network, pruned subnetworks compatible with the
+  dense model, incl. ViT-S and Market-1501/MSMT17), **ResFormer** (CVPR 2023: detached higher-resolution class
+  token teaches lower resolution = our low-resolution training mechanism), **RFD** (cross-resolution re-ID:
+  low-resolution queries upsampled to full input, no compute saving). LITERATURE_MATRIX.md section F.
+- **Consequence:** every component of our method is prior work. Remaining gap (not found): input-side compute
+  knobs (resolution, tokens) of one ViT re-ID model, compatible with its own full-cost gallery, measured in
+  latency against equal-budget baselines. Supports an empirical study, not a method contribution.
+- **Decision needed from the user (changes the research objective):** (a) empirical study; (b) new mechanism,
+  e.g. per-query budget selection (literature check first: DVT and dynamic-token ViTs); (c) native-resolution
+  data (needs CUHK03 sign-up). REPORT_ITERATION1.md Section 9, RESEARCH_LOG.md Part 7.
+- Earlier open decision (`sp_mixed` vs frozen-gallery student) is subordinate to this one.
 
 ## Current status: PAUSED CLEANLY (2026-11-16 23:50, PC shutdown at the user's request). Nothing is running.
 All queues are finished (`run_iter3.sh` phases M, E, D; `run_iter4.sh` phase F). There is **no partial run, no

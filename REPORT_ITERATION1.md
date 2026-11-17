@@ -40,6 +40,8 @@ mean the paper lacks the feature.
 | Person re-ID data | Market-1501, MSMT17 | MSMT17 | None (CUB200, Cars196, SOP) | Occluded-Duke, Occluded-REID, Market-1501 and others | None | None | Market-1501 |
 | Costs reported | Parameter ratios | Inference FLOPs | Query GFLOPs (figures) | Throughput | Throughput, FLOPs | Throughput, FLOPs | GFLOPs, latency (GPU and CPU, batch 1 and large), training GPU-hours, equal-GPU-hour baseline |
 
+Papers added on 2026-11-17 (summarising-tool full reads, `FULL-S`; details in `LITERATURE_MATRIX.md` section
+F): PrunNet (arXiv 2504.11879), ResFormer (CVPR 2023), RFD for cross-resolution re-ID (arXiv 2109.07871).
 Supporting reads: CSD (CVPR 2022; label-free neighbour-structure distillation, landmarks only) and the papers
 in `LITERATURE_MATRIX.md` sections B and C, most at abstract depth and therefore not used for any claim of
 absence.
@@ -52,23 +54,38 @@ What these papers settle:
 4. A frozen gallery model with a same-architecture student trained on a cheaper input exists (Suma and
    Tolias). Our candidate "C1" is that method with another knob.
 5. Token pruning with distillation for re-ID exists (SUReID), with one budget per model.
+6. **(Added 2026-11-17.)** One set of weights with several compatible budgets, **including a ViT-S and
+   Market-1501 / MSMT17**, exists: PrunNet (Sun et al., arXiv 2504.11879, 2025) prunes weights (unstructured)
+   and handles gradient conflicts. Its authors state that the sparsity is hard to accelerate on hardware.
+7. **(Added 2026-11-17.)** Multi-resolution ViT training in which the detached higher-resolution class token
+   teaches the lower-resolution one exists: ResFormer (Tian et al., CVPR 2023), for classification and dense
+   tasks. This is the training mechanism of our low-resolution second pass.
+8. **(Added 2026-11-17.)** Low-resolution queries against a high-resolution re-ID gallery are a known
+   sub-field (cross-resolution re-ID, MLR-Market-1501, CAVIAR). In the paper read in full (RFD, Munir et al.,
+   arXiv 2109.07871) and the methods it lists, low resolution is a degradation: the query is super-resolved or
+   upsampled to the full network input, so it costs at least full compute.
 
-## 3. Preliminary gap
+## 3. Preliminary gap (revised 2026-11-17)
 
-Not found in the texts read (about 25 searches; absence of evidence, not proof of absence):
+Not found in the texts read and in about 35 searches (absence of evidence, not proof of absence):
 
-- the **token count of a single ViT** (merging) as the cheap-query knob for compatible retrieval embeddings;
-- **one set of weights compatible under more than one knob** (token merging and input resolution);
-- measurements of **how** token reduction moves a re-ID embedding relative to its full-token version;
-- **cost accounting** of compatibility: training GPU-hours, an equal-GPU-hour baseline, the accuracy lost at
-  full cost, and measured latency rather than FLOPs alone.
+- **input-side** budgets of one ViT re-ID model (input resolution, token count) used as a **compute** knob
+  for the query, with the query embedding compatible with the same model's full-cost gallery. Cross-resolution
+  re-ID upsamples the query; PrunNet and SFSC shrink the weights, not the input; ResFormer has no retrieval;
+- one set of weights compatible under **two input-side knobs** at once (resolution and token merging);
+- **cost accounting** of compatibility: training GPU-hours against an equal-GPU-hour baseline, the accuracy
+  lost at full cost, and **measured** latency per regime rather than FLOPs alone;
+- measurements of how token reduction moves a re-ID embedding relative to its full-token version.
 
-The gap is narrow. It is the SFSC / asymmetric-retrieval problem with a different elastic dimension, plus an
-honest cost account. Our own measurements narrow it further: on Market-1501 the resolution knob, which
-Suma and Tolias already study, beats the token-merging knob in both accuracy and measured speed (Section
-6.6). What remains specific to this work is a single set of weights compatible under several budgets and
-both knobs, for re-ID, with its costs measured. It would be judged incremental unless the token or resolution knob proves better than
-width at equal cost, or the mechanism findings (Section 6.2) carry over to other datasets.
+**Honest assessment.** Every component of our method is prior work: the training mechanism (ResFormer), the
+alignment loss (D3still, Suma and Tolias), one-network multi-budget compatibility (SFSC, PrunNet), the frozen
+gallery with a same-architecture cheap student (Suma and Tolias). What remains is a *setting* and an
+*evaluation*: input-side compute knobs for compatible re-ID retrieval, measured in latency, against
+equal-budget baselines. Our own results further show that, on Market-1501, resolution dominates token
+merging in accuracy and measured speed (Section 6.6), and that the prior-work-style frozen-gallery student
+matches our single-model method on low resolution (Section 6.8). As it stands this supports an empirical
+study, not a method contribution. A method contribution would need a mechanism that none of the above has;
+candidates are listed in Section 9.
 
 ## 4. Methodology
 
@@ -367,10 +384,18 @@ Reading:
 ## 9. Next steps
 
 1. Second dataset with higher native resolution (blocked on sign-up). It decides whether merging has a role.
-2. Literature: cross-resolution / low-resolution-query re-ID and multi-budget asymmetric retrieval (not yet
-   searched); decide between the single-model method and the frozen-gallery student; frozen-gallery student
-   on the 216-epoch teacher.
-3. Gradient-conflict diagnostic; separate-classifier control; more ViT-B seeds and `sp_mixed` on ViT-B.
+2. **Decide the framing (open, needs the author and instructor).** After the 2026-11-17 literature pass
+   (Section 3) there are three honest options, none verified as novel yet:
+   - (a) **Empirical study:** input-side compute knobs for compatible re-ID retrieval, measured in latency
+     against equal-budget baselines, with the negative results. Defensible now; weak on method novelty.
+   - (b) **Per-query budget selection:** spend more compute only on queries whose cheap embedding is likely to
+     be unreliable, using a predictor of drift from the full-cost embedding, so the *average* query cost drops
+     at fixed accuracy. Not searched yet; dynamic-inference ViTs (for example DVT, NeurIPS 2021, from prior
+     knowledge, not re-read) do this for classification, so a literature check comes first.
+   - (c) **Native-resolution data:** test whether token merging keeps information that downsizing destroys
+     on a dataset whose crops are larger than 128x64. Needs the second dataset.
+3. Frozen-gallery student on the 216-epoch teacher; gradient-conflict diagnostic; separate-classifier control;
+   more ViT-B seeds and `sp_mixed` on ViT-B. These refine the evaluation; they do not change the novelty.
 
 ## Reproduction
 Commands and per-run tables: `PROGRESS_LOG.md`. Queues: `run_iter1b.sh`, `run_iter2.sh`, `run_iter3.sh`.
