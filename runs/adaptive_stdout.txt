@@ -1,0 +1,19 @@
+cached 3368 queries, 15913 gallery images
+base_s0 cheap (128, 64): done
+base_s0 cheap (160, 80): done
+base_s0: saved runs/adaptive.csv
+base_s1 cheap (128, 64): done
+base_s1 cheap (160, 80): done
+base_s1: saved runs/adaptive.csv
+base_s2 cheap (128, 64): done
+base_s2 cheap (160, 80): done
+base_s2: saved runs/adaptive.csv
+sp_mixed_s0 cheap (128, 64): done
+sp_mixed_s0 cheap (160, 80): done
+sp_mixed_s0: saved runs/adaptive.csv
+sp_mixed_s1 cheap (128, 64): done
+sp_mixed_s1 cheap (160, 80): done
+sp_mixed_s1: saved runs/adaptive.csv
+sp_mixed_s2 cheap (128, 64): done
+sp_mixed_s2 cheap (160, 80): done
+sp_mixed_s2: saved runs/adaptive.csv

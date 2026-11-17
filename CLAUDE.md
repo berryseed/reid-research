@@ -102,7 +102,15 @@ modify files or run experiments. Explanations go **in the conversation**, not on
   maths, results, fair comparison, negative results, limitations), a beginner study guide
   (`STUDY_GUIDE.md`), supervisor questions with answers (`SUPERVISOR_QA.md`). Save and push regularly.
 
-## Session 4 (2026-11-17): literature pass done, framing decision pending (details: RESEARCH_LOG.md Part 7)
+## State 2026-11-17 evening: ITERATION 1 COMPLETE
+- Deliverables written and pushed: `REPORT_ITERATION1.md` (final), `STUDY_GUIDE.md`, `SUPERVISOR_QA.md`.
+- The framing decision below is resolved by the user's 2026-11-17 priorities: iteration 1 = `sp_mixed`
+  as a credited combination of existing techniques, evaluated against equal-budget baselines.
+- Per-query cascade (`adaptive.py`, E17): oracle-quality top-1 signal but dominated by fixed budgets;
+  iteration-2 work (needs stage-1 feature reuse). Iteration-2 plan: REPORT_ITERATION1.md Section 10.
+- Nothing is running. Code added today: `adaptive.py`, `aggregate_adaptive.py`.
+
+## Session 4 morning (2026-11-17): literature pass (framing decision since resolved) (details: RESEARCH_LOG.md Part 7)
 - PrunNet (arXiv 2504.11879), ResFormer (CVPR 2023) and RFD (cross-resolution re-ID) read in full
   (`FULL-S`, LITERATURE_MATRIX.md section F). **Every component of our method is prior work.** Remaining
   gap (not found): input-side compute knobs of one ViT re-ID model compatible with its own full-cost

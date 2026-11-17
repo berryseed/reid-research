@@ -750,3 +750,55 @@ put to the user rather than decided here.
 - Only one cross-resolution re-ID paper was read in full; the claim "the query is upsampled" rests on it and on
   its own description of related methods. CRGAN, MRJL and newer cross-resolution work are leads, not reads.
 - FlexiViT and NaViT were not retrieved.
+
+# Part 8. Session 4, afternoon (2026-11-17): deadline mode, per-query cascade, final iteration-1 documents
+
+## 8.1 Change of priorities (user, 2026-11-17)
+Iteration-1 deadline is 2026-11-18. The methodology need not be entirely novel or beat existing methods; a
+credited combination of existing techniques is acceptable. Time boxes: per-query budget literature <= 45 min,
+extra experiments <= 2 h, evaluation-only. If the adaptive idea is not promising, keep `sp_mixed` as iteration 1
+and propose adaptive selection for iteration 2. Deliverables: complete report, beginner study guide, supervisor
+questions with answers. Recorded in CLAUDE.md.
+
+## 8.2 Literature on per-query budget selection (about 15 minutes)
+- RANet (CVPR 2020): sub-networks at increasing input resolution with early exits; a sample moves to the
+  higher-resolution sub-network only when the softmax confidence is too low; features are reused.
+- DVT (NeurIPS 2021): a cascade of ViTs with increasing token counts (e.g. 7x7 → 10x10 → 14x14), early exit by
+  confidence, reuse of features and attention between stages.
+- QuARI (NeurIPS 2025): query-adaptive linear transform of the embedding space; adaptive, but no compute escalation.
+- iQPP (2023) and earlier work: query performance prediction for image retrieval; post-retrieval predictors
+  use the similarity scores of the top results.
+Reading depth: abstracts and search summaries only. Conclusion: per-sample budget selection is established for
+classification; for retrieval there is no softmax, so the confidence must come from the search itself. Our
+cascade is an adaptation, credited as such.
+
+## 8.3 E17: the cascade (evaluation only, existing checkpoints, 3 seeds per model)
+**Concept.** Embed every query cheaply, search, and re-embed only the least confident fraction p at full cost.
+Average cost `G_c + p · G_full`. Confidence: top-1 cosine similarity of the cheap query to the gallery (low =
+no gallery image matches it well). Controls: random escalation, and an oracle that escalates the queries whose
+cheap embedding is furthest from their own full embedding. Comparison at equal average cost with the fixed
+curve (all queries at one resolution), by linear interpolation. Whole curve reported; nothing tuned.
+**Expectation recorded before running:** the signal carries information; the cascade may help the baseline
+(poor cheap queries) more than `sp_mixed` (flat curve).
+**Result.** The signal is oracle-quality (within 0.1 mAP of the oracle; up to +5.9 over random on the baseline).
+The cascade is below the fixed curve at equal cost for every model and every p: `sp_mixed` −0.1 to −0.7,
+frozen-gallery student −0.1 to −1.0, baseline −1 to −8 mAP.
+**Why (the important lesson).** Two facts combine. (1) An escalated query pays the cheap pass and the full pass.
+(2) The fixed-budget curve is concave: going from 128x64 to 192x96 buys most of the accuracy, going on to full
+cost buys little. A cascade that starts at the cheapest point and jumps to full cost moves along a straight
+line between the two ends of a concave curve (shifted right by the wasted cheap pass), so it lies below the
+curve. Escalating to an intermediate budget would not help, because the cascade still starts at the weakest
+point. A cascade can only win if stage-1 computation is reused (no double payment) or if the fixed curve is
+not concave, i.e. data where cheap queries fail for a minority of hard images rather than mildly for all.
+**Decision.** As planned: not promising in this form; `sp_mixed` remains the iteration-1 method; adaptive
+selection with feature reuse moves to iteration 2. The positive part (a label-free, oracle-quality confidence
+from the cheap search) is kept as a finding.
+
+## 8.4 Final documents
+- `REPORT_ITERATION1.md` rewritten as one coherent report: summary; six-paper comparison (SFSC, D3still, Suma
+  and Tolias, ResFormer, PrunNet 2025, DVT) plus credited secondary work incl. 2025-2026 at abstract level;
+  gap; architecture diagram; full formulation (knobs, losses, cascade, cost model); protocol (gallery 15,913
+  after removing junk, corrected from the earlier "19,732"); results 6.1-6.9; fair comparison of schemes
+  re-implemented in our setting; negative results; limitations; conclusions; iteration-2 plan.
+- `STUDY_GUIDE.md` (beginner explanation of everything) and `SUPERVISOR_QA.md` (about 35 questions with answers).
+- Total training compute of the project: 13.4 GPU-hours over 57 runs (sum of `train_hours` in `log.json`).

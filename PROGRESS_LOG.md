@@ -607,3 +607,35 @@ ViT-B latency (`runs/latency_vitb.csv`): full 6.16 ms GPU b1, 0.328 ms/img GPU b
   section 9 (framing options a/b/c); RESEARCH_LOG.md Part 7; PROGRESS.md and CLAUDE.md state.
 - Outcome: all components of the method are prior work; remaining gap = input-side compute knobs for
   compatible re-ID retrieval with measured latency and equal-budget accounting. Framing decision put to the user.
+
+
+## 2026-11-17 afternoon — deadline mode (user): cascade E17, final iteration-1 documents
+- CLAUDE.md: "PRIORITIES FROM 2026-11-17" (deadline 2026-11-18, revised novelty rule, time boxes, deliverables).
+- Literature (WebSearch, standard/extended): DVT; query-adaptive retrieval cascades (QuARI found); RANet;
+  query performance prediction for image retrieval (iQPP). Abstract level only.
+- New: `adaptive.py` (cascade evaluation), `aggregate_adaptive.py` (seed aggregate, gain vs fixed curve at equal
+  GFLOPs by linear interpolation, figure).
+- Test: `adaptive.py --ckpts runs/sp_mixed_s0/last.pth` (74 s; full-cost 83.77 = known value; 3,368 queries,
+  15,913 gallery).
+- Runs:
+  `.venv/Scripts/python.exe adaptive.py --data C:/Users/user/data/Market-1501-v15.09.15 --ckpts runs/base_s{0,1,2}/last.pth runs/sp_mixed_s{0,1,2}/last.pth --out runs/adaptive.csv`
+  `.venv/Scripts/python.exe adaptive.py --data ... --ckpts runs/fg_mixed_s{0,1,2}/last.pth --gallery-ckpts runs/base_s{0,1,2}/last.pth --out runs/adaptive_fg.csv`
+  `PYTHONUTF8=1 .venv/Scripts/python.exe aggregate_adaptive.py runs/adaptive.csv runs/adaptive_fg.csv --out runs/adaptive_agg.md --png runs/adaptive.png`
+
+### E17 cascade, asymmetric mAP, 3 seeds (gain = vs fixed curve at equal average GFLOPs)
+| model | cheap | p | GFLOPs | top1 | random | oracle | gain top1 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| sp_mixed | 128x64 | 0.1 | 1.01 | 82.11 ± 0.16 | 81.75 | 82.20 | -0.50 ± 0.01 |
+| sp_mixed | 128x64 | 0.3 | 1.60 | 82.91 ± 0.20 | 82.26 | 82.95 | -0.67 ± 0.07 |
+| sp_mixed | 160x80 | 0.1 | 1.42 | 83.23 ± 0.17 | 83.13 | 83.27 | -0.13 ± 0.04 |
+| sp_mixed | 160x80 | 0.3 | 2.00 | 83.55 ± 0.18 | 83.32 | 83.55 | -0.25 ± 0.03 |
+| base | 160x80 | 0.1 | 1.42 | 78.11 ± 0.48 | 76.68 | 78.09 | -0.98 ± 0.19 |
+| base | 160x80 | 0.3 | 2.00 | 80.91 ± 0.61 | 78.32 | 80.80 | -1.92 ± 0.33 |
+| base | 128x64 | 0.3 | 1.60 | 73.27 ± 1.82 | 67.42 | 73.12 | -7.88 ± 1.76 |
+| fg_mixed | 128x64 | 0.3 | 1.60 | 82.67 ± 0.51 | 81.77 | 82.81 | -0.97 ± 0.12 |
+| fg_mixed | 160x80 | 0.1 | 1.42 | 83.19 ± 0.50 | 82.93 | 83.25 | -0.12 ± 0.01 |
+| fg_mixed | 160x80 | 0.3 | 2.00 | 83.72 ± 0.51 | 83.24 | 83.69 | -0.31 ± 0.03 |
+"gap" signal (top-1 minus mean of ranks 2-10) ≈ random everywhere. Full table: `runs/adaptive_agg.md`.
+Decision: not promising (dominated by fixed budgets); `sp_mixed` stays the iteration-1 method.
+- Documents: REPORT_ITERATION1.md rewritten (final); STUDY_GUIDE.md; SUPERVISOR_QA.md. Training compute of
+  the project: 13.4 GPU-h over 57 runs. No GPU training today.

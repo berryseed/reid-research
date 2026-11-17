@@ -4,9 +4,22 @@ Current state at a glance. Detailed chronological record with exact commands and
 `PROGRESS_LOG.md`. Background, decisions and literature: `PROJECT_CONTEXT.md`.
 All numbers are Market-1501, ViT-S/16 (ImageNet-21k->1k augreg weights), 256x128, 120 epochs, unless stated.
 
-_Last updated: 2026-11-17 (session 4: literature pass; waiting on the framing decision)._
+_Last updated: 2026-11-17 evening (iteration 1 complete; deliverables written)._
 
-## Session 4 (2026-11-17): literature pass done; WAITING on the user's framing decision. Nothing is running.
+## ITERATION 1 COMPLETE (2026-11-17). Nothing is running.
+Deliverables: **`REPORT_ITERATION1.md`** (final report), **`STUDY_GUIDE.md`** (beginner explanation),
+**`SUPERVISOR_QA.md`** (likely questions with answers). Deadline 2026-11-18.
+- **Method of iteration 1: `sp_mixed`** (one ViT-S, two passes, cheap pass drawn from low resolution and gradual
+  merging, shared classifier, cosine alignment to the detached full pass). Credited combination of SFSC/BCT,
+  D3still / Suma-Tolias, ResFormer, ToMe.
+- **Per-query cascade (E17, evaluation only, 3 seeds):** top-1 gallery similarity of the cheap query is an
+  oracle-quality escalation signal, but the cascade is dominated by fixed budgets at equal cost (`sp_mixed`
+  −0.1 to −0.7 mAP). Moved to iteration 2 (with stage-1 feature reuse). `runs/adaptive_agg.md`, `runs/adaptive.png`.
+- **Iteration 2 plan:** REPORT_ITERATION1.md Section 10 (second dataset; cascade with feature reuse; reduce the
+  full-cost deficit; re-implement one published multi-budget baseline; ViT-B seeds; validation split).
+
+### History (morning of 2026-11-17)
+Session 4 (2026-11-17): literature pass done; WAITING on the user's framing decision. Nothing is running.
 - Read in full (`FULL-S`): **PrunNet** (arXiv 2504.11879: one network, pruned subnetworks compatible with the
   dense model, incl. ViT-S and Market-1501/MSMT17), **ResFormer** (CVPR 2023: detached higher-resolution class
   token teaches lower resolution = our low-resolution training mechanism), **RFD** (cross-resolution re-ID:

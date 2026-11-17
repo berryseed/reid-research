@@ -246,7 +246,17 @@ Same pattern, larger full-cost deficit (2.7 mAP), and worse accuracy per GFLOP t
 
 ## 10. Per-query budget selection (the cascade)
 
-See `REPORT_ITERATION1.md` Section 6.9 for the numbers; the idea in brief:
+Full numbers: `REPORT_ITERATION1.md` Section 6.9 and figure `runs/adaptive.png`.
+
+**Result in two sentences.** The confidence score works: the cheap query's top-1 gallery similarity picks the
+queries that need escalation as well as an oracle that knows the true drift, and far better than random
+(e.g. baseline from 160x80 at p = 0.3: 80.91 vs random 78.32, oracle 80.80). But the cascade still loses to
+simply giving every query one intermediate resolution at the same average cost (our method: −0.1 to −0.7 mAP),
+because an escalated query pays twice and the fixed-budget curve is concave (it rises steeply at first, then
+flattens). So the cascade is reported as a preliminary negative result and becomes iteration-2 work, where the
+cheap pass would be reused instead of paid twice.
+
+The idea in brief:
 - **Intuition:** most queries are easy; spend full compute only on the hard ones.
 - **Cascade:** embed every query cheaply (e.g. 128x64) and search. Compute a confidence score from that search
   (the cheap query's highest cosine similarity to the gallery, `top-1`). Re-embed the fraction p of queries
