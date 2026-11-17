@@ -87,6 +87,21 @@ modify files or run experiments. Explanations go **in the conversation**, not on
 - To pause the project safely: STOP-file the running run (or let it finish), wait for the process to exit,
   commit/push metrics, confirm no python.exe from `.venv` is running.
 
+## PRIORITIES FROM 2026-11-17 (user; supersede earlier novelty and scope rules where they conflict)
+- **Iteration-1 deadline is 2026-11-18.** Goal: a complete, understandable, defensible first iteration,
+  not a publication-ready paper. Use existing results as the foundation.
+- **Revised novelty requirement:** the methodology does not need to be entirely novel, beat existing methods
+  or reach state of the art. A preliminary adaptation or combination of existing techniques is acceptable if
+  prior work is acknowledged accurately. Do not keep rejecting or redesigning the method in pursuit of
+  absolute novelty. Worse performance than baselines is acceptable if reported fairly and explained.
+- Time boxes: per-query budget selection literature <= 45 min; extra experiments <= 2 h, evaluation-only with
+  existing checkpoints (no retraining). If the adaptive mechanism is not promising, keep the multi-budget
+  method (`sp_mixed`) as iteration 1 and propose adaptive budget selection for iteration 2.
+- Second dataset (CUHK03 etc.) is future work, not a blocker.
+- Deliverables: `REPORT_ITERATION1.md` (5-6 paper comparison incl. 2025-2026, gap, method, architecture,
+  maths, results, fair comparison, negative results, limitations), a beginner study guide
+  (`STUDY_GUIDE.md`), supervisor questions with answers (`SUPERVISOR_QA.md`). Save and push regularly.
+
 ## Session 4 (2026-11-17): literature pass done, framing decision pending (details: RESEARCH_LOG.md Part 7)
 - PrunNet (arXiv 2504.11879), ResFormer (CVPR 2023) and RFD (cross-resolution re-ID) read in full
   (`FULL-S`, LITERATURE_MATRIX.md section F). **Every component of our method is prior work.** Remaining
