@@ -231,7 +231,8 @@ gallery; token merging or pruning for compatible / asymmetric retrieval.
 
 ### F1. PrunNet — Learning Compatible Multi-Prize Subnetworks for Asymmetric Retrieval
 - **Bibliographic:** Yushuai Sun, Zikun Zhou, Dongmei Jiang, Yaowei Wang, Jun Yu, Guangming Lu, Wenjie Pei
-  (HIT Shenzhen, Pengcheng Lab). arXiv 2504.11879 v1, 16 Apr 2025; venue not stated on the page read. Code
+  (HIT Shenzhen, Pengcheng Lab). arXiv 2504.11879 v1, 16 Apr 2025; venue not stated on the page read
+  (**verified 2026-11-21: CVPR 2025, pp. 15255-15264, DOI 10.1109/CVPR52734.2025.01421**, section G). Code
   github.com/Bunny-Black/PrunNet. Depth: `FULL-S` (HTML, all 120k characters read in two passes; the
   Market-1501 table of Appendix F exists but its numbers were not extracted by the tool).
 - **What is made cheap:** weights. One dense network; subnetworks keep the top-c % of connections per layer by
@@ -305,3 +306,42 @@ Open literature questions for the next session:
 - Does any asymmetric-retrieval paper train one query model for several budgets (ACD, AML, ROP)?
 - Is there a re-ID paper on resolution-asymmetric or low-resolution-query retrieval with a compatible gallery
   (cross-resolution re-ID is a known topic; **not searched yet**, and it could close most of the remaining gap)?
+
+## G. Literature pass of 2026-11-21 (session 5): 2025-2026 work only
+
+Full analysis, comparison table, gap verdict and iteration-2 directions: `RECENT_LITERATURE_2025_2026.md`.
+12 WebSearch queries; full reads through the summarising fetch tool (`FULL-S`). CVF Open Access returned 403
+to the fetch tool (abstract pages readable in the browser pane, PDFs not); OpenReview showed a bot check (not
+bypassed). Rows marked `ABS` must not be used for absence claims.
+
+| Paper | Venue (verified) | Depth | Knob made cheap | Compatible cheap query vs full gallery | Relevance to us |
+| --- | --- | --- | --- | --- | --- |
+| ThinkingViT (Hojjat et al.), arXiv 2507.10800 v3 | CVPR 2026 poster | `FULL-S` | Heads/width (nested); per-input entropy exit; **token recycling** `E = α·Proj(z_L) + E(x)` | No (ImageNet classification) | Closest for iteration 2: reuse of the cheap pass fixes the cause of our E17 negative result |
+| ACD (Xie et al.) | CVPR 2026 Findings, pp. 6706-6716 | `ABS` + code README | Separate query network (e.g. ResNet-18 at 64x64 vs ResNet-101 at 256x256) | Yes; **query frozen, gallery trained** (collaborative logit space, RAHO learning rates) | 2026 state of the D3still line; inverse of our `fg_mixed`; needs gallery re-embedding |
+| TE-VMamba (Huang, Yoon) | CVPR 2026, pp. 4363-4372 | `ABS` | Tokens: prune shallow, merge deep, learned per-layer thresholds (VMamba) | Not stated in abstract | Token reduction for re-ID is a 2026 main-venue topic; >60 % FLOPs cut on Market-1501 (abstract) |
+| SRE-Merge (Li et al.) | ICML 2026 poster | `ABS` | Tokens, training-free, spatial-entropic importance | Not stated in abstract | Candidate replacement for ToMe matching; about 24 % GFLOPs cut (abstract) |
+| VPFA (Liu et al.), arXiv 2510.00936 v2 | ICML 2026, PMLR 306:79598-79614 | `FULL-S` | None (low resolution is a degradation); post-hoc residual gated MLP on frozen TransReID features, `L = ‖ẑ_LR − z_HR‖²`, label-free | Yes (LR query vs HR gallery) | 2026 version of our ridge-map baseline; fairest post-hoc baseline not yet run; R1 only (MLR-Market 94.1 vs 90.3) |
+| PrunNet (Sun et al.), arXiv 2504.11879 | **CVPR 2025** (corrects F1) | `FULL-S` (F1) | Weights | Yes | Closest in methodology to `sp_mixed` (one network, compatible budgets, shared classifier, ViT-S, re-ID) |
+| OSKT (Li, Qi, Geng), arXiv 2511.06016 | ICCV 2025 | `FULL-S` | Width (weight chain, students fine-tuned separately) | **Not evaluated** | Multi-size re-ID ViTs from one training, but incompatible embeddings; ViT-S students 74.2-77.2 mAP (symmetric, PASS init) |
+
+Corrections to earlier sections: PrunNet venue is CVPR 2025 (F1). ACD row of section C: the abstract states
+that the **query** network is frozen and the **gallery** network is optimised. ThinkingViT (section C row,
+previously `ABS`) is now `FULL-S`; it has no retrieval experiments.
+
+### G1. Gap after this pass
+- Still not found (in what was read): input-side budgets (resolution and tokens) of **one** ViT re-ID model
+  compatible with its own full-cost gallery; two input knobs at once; the equal-budget cost account with
+  measured latency.
+- **Narrowed:** per-input budget choice. ThinkingViT (CVPR 2026) does confidence-based escalation with reuse
+  in one nested ViT (classification); HashReID (WACV 2024, outside the window, not read) does early exit for
+  re-ID. Remaining part: a gallery-similarity signal under a compatibility constraint, which our E17 shows
+  needs reuse to pay off.
+- Not to be claimed as new: token reduction for re-ID; resolution-asymmetric retrieval; one network with
+  several compatible budgets; confidence-based elastic ViTs.
+
+### G2. Leads at search-result level only (2025-2026)
+DCAH (AAAI 2026, asymmetric quantised retrieval); UGD (Neural Networks 2025, asymmetric distillation);
+stationary / hyperspherical-simplex compatible representations (arXiv 2606.12488, 2610.29550); MM-Matryoshka
+(arXiv 2606.07654) and Tevatron-Elastic (SIGIR-AP 2026), budget-elastic retrieval; asymmetric VPR (arXiv
+2512.13055); ReIDMamba (arXiv 2511.07948). Outside the window: HashReID (WACV 2024, early-exit re-ID; read
+before iteration 2).

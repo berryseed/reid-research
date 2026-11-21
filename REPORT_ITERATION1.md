@@ -67,7 +67,7 @@ what was read, never "the paper lacks it". Abstract-level entries are not used f
 
 | | SFSC | D3still | Suma and Tolias | ResFormer | PrunNet | DVT | **This work** |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Reference | Wu et al., CVPR 2023 | Xie et al., CVPR 2024 | Suma, Tolias, WACV 2023 | Tian et al., CVPR 2023 | Sun et al., arXiv 2504.11879, 2025 | Wang et al., NeurIPS 2021 | — |
+| Reference | Wu et al., CVPR 2023 | Xie et al., CVPR 2024 | Suma, Tolias, WACV 2023 | Tian et al., CVPR 2023 | Sun et al., CVPR 2025 (arXiv 2504.11879) | Wang et al., NeurIPS 2021 | — |
 | Depth read | `FULL-S` | `FULL` | `FULL-S` | `FULL-S` | `FULL-S` | `ABS` | — |
 | Goal | Several compatible sub-models from one training run | Small query network ranks like a large gallery network | Small-resolution queries vs large-resolution database | One ViT that works at many resolutions | Several compatible sub-networks of one network | Fewer tokens for easy images | One ViT whose cheap queries match its full-cost gallery |
 | What is made cheap | CNN channel width | A separate small network (+ resolution) | Input resolution | Input resolution | Weights (unstructured pruning) | Token count, per image | Input resolution and token count |
@@ -87,8 +87,8 @@ Other work used (details in `LITERATURE_MATRIX.md`):
   upsampled to full network input, so no compute is saved.
 - **Cascades for classification:** RANet (CVPR 2020, resolution, `ABS`).
 - **Query performance prediction for image retrieval:** iQPP (2023, `ABS`).
-- **Recent work at abstract level only:** QuARI (NeurIPS 2025, query-adaptive embedding transform), ACD (CVPR
-  2026 Findings, asymmetric distillation) and ThinkingViT (CVPR 2026, nested elastic ViT).
+- **Recent work at abstract level only:** QuARI (NeurIPS 2025, query-adaptive embedding transform). ACD and
+  ThinkingViT are now covered in Section 2.3.
 
 ### 2.2 What prior work already establishes
 1. One training run giving several mutually compatible re-ID models (SFSC; PrunNet, including a ViT-S).
@@ -98,6 +98,33 @@ Other work used (details in `LITERATURE_MATRIX.md`):
 4. A frozen gallery model with a same-architecture student for cheaper queries (Suma and Tolias).
 5. Multi-resolution ViT training with a detached higher-resolution teacher (ResFormer).
 6. Per-sample compute selection by confidence (RANet, DVT), for classification.
+
+### 2.3 Update with 2025-2026 work (added 2026-11-21, after the iteration-1 results)
+A focused pass over 2025-2026 papers (details, equations and reading depth in `RECENT_LITERATURE_2025_2026.md`
+and `LITERATURE_MATRIX.md` section G). No result of this report changed. Reading depth: ThinkingViT, VPFA, OSKT
+and PrunNet read in full through a summarising tool (`FULL-S`). ACD, TE-VMamba and SRE-Merge were read at the
+abstract level only (`ABS`), because their PDFs could not be accessed; for ACD the code README was also read.
+
+| Paper | Venue | Depth | Relation to this work |
+| --- | --- | --- | --- |
+| ThinkingViT (Hojjat et al.) | CVPR 2026 | `FULL-S` | One nested ViT (3 then 6 heads), joint loss `Σ λ_i L_cls`, per-image entropy exit; the second stage **reuses** the first stage's tokens (`E = α·Proj(z_L) + E(x)`). Classification only. Same cost model as our cascade; recycling addresses the cause of our cascade's negative result (Section 6.9). |
+| ACD (Xie et al.) | CVPR 2026 Findings | `ABS` + code | Asymmetric retrieval with capacity and resolution gaps (e.g. query at 64x64); freezes the **query** network and adapts the **gallery** network; plug-in to D3still and others; MSMT17 among its benchmarks. Two networks; gallery re-embedding needed. |
+| TE-VMamba (Huang, Yoon) | CVPR 2026 | `ABS` | Token pruning (shallow) and merging (deep) with learned thresholds for re-ID on VMamba; over 60 % fewer FLOPs on Market-1501 (abstract). |
+| SRE-Merge (Li et al.) | ICML 2026 | `ABS` | Training-free, re-ID-specific token merging (spatial-entropic importance); about 24 % fewer GFLOPs (abstract). |
+| VPFA (Liu et al.) | ICML 2026 | `FULL-S` | Cross-resolution re-ID: label-free residual gated MLP on frozen TransReID features, `‖ẑ_LR − z_HR‖²`. Rank-1 only (MLR-Market 94.1 vs 90.3). A non-linear version of our ridge-map baseline; low resolution is a degradation, not a compute knob. Whether queries enter at native size is not stated. |
+| PrunNet (Sun et al.) | CVPR 2025 | `FULL-S` | (Table 2.1.) Venue now verified. Closest in methodology. |
+| OSKT (Li, Qi, Geng) | ICCV 2025 | `FULL-S` | Several re-ID model sizes (incl. ViT-S) from one "weight chain", each fine-tuned separately; cross-model compatibility not evaluated. |
+
+**Consequences for this report.**
+- The gap of Section 3 remains as stated for input-side budgets of one model, two knobs at once and the cost
+  account.
+- The per-query bullet is **narrowed**: confidence-based escalation with reuse inside one ViT exists for
+  classification (ThinkingViT, 2026).
+- Token reduction for re-ID (TE-VMamba, SRE-Merge) and resolution-asymmetric retrieval (ACD, VPFA) are active
+  2026 topics and are not claimed as new here.
+- Benchmark numbers of these papers come from other protocols and are not compared with ours.
+- **Missing baseline (limitation):** a VPFA-style non-linear post-hoc map on the frozen baseline was not run.
+  Our +0.8 to +4.1 mAP advantage is measured against a *linear* map only.
 
 ## 3. Research gap (preliminary)
 
@@ -109,7 +136,9 @@ Not found in the papers read and about 40 searches (absence of evidence, not pro
 - a **cost account** of compatibility: training GPU-hours against an equal-GPU-hour baseline, accuracy lost at
   full cost, and measured latency per regime instead of FLOPs only;
 - a **retrieval-side confidence** to choose the query budget per query (cascades in RANet/DVT use softmax
-  confidence for classification).
+  confidence for classification). *Narrowed on 2026-11-21:* ThinkingViT (CVPR 2026) escalates per image
+  inside one nested ViT and reuses the first stage. What remains is a gallery-similarity signal under a
+  compatibility constraint (Section 2.3).
 
 **Position.** The contribution of iteration 1 is an adaptation and combination of existing techniques for
 this setting, plus a careful, cost-accounted evaluation with negative results. It is not a new learning

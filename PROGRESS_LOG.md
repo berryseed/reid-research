@@ -639,3 +639,16 @@ ViT-B latency (`runs/latency_vitb.csv`): full 6.16 ms GPU b1, 0.328 ms/img GPU b
 Decision: not promising (dominated by fixed budgets); `sp_mixed` stays the iteration-1 method.
 - Documents: REPORT_ITERATION1.md rewritten (final); STUDY_GUIDE.md; SUPERVISOR_QA.md. Training compute of
   the project: 13.4 GPU-h over 57 runs. No GPU training today.
+
+## Session 5 (2026-11-21): 2025-2026 literature review (no GPU, nothing committed)
+- User request: focused review of 2025-2026 papers (2026 preferred); no training; no git changes (the user
+  commits and pushes). 12 WebSearch queries; full reads (web-fetch, `FULL-S`): ThinkingViT arXiv 2507.10800v3,
+  VPFA arXiv 2510.00936v2 (+ PMLR v306 page), OSKT arXiv 2511.06016v1. Browser pane (abstract pages): ACD
+  (CVPR 2026 Findings) + its GitHub README, TE-VMamba (CVPR 2026), ThinkingViT CVPR 2026 poster page.
+  SRE-Merge (ICML 2026): poster abstract only (OpenReview bot check, not bypassed). CVF PDFs: 403 to the fetch
+  tool; in the browser they are downloads (one save dialog was triggered by mistake; nothing downloaded on purpose).
+- Venue correction: PrunNet = CVPR 2025 (pp. 15255-15264).
+- New file `RECENT_LITERATURE_2025_2026.md`; `LITERATURE_MATRIX.md` section G (+ F1 venue);
+  `REPORT_ITERATION1.md` Section 2.3 added, PrunNet venue, gap bullet 4 narrowed.
+- Gap verdict: valid but narrowed (per-query budget choice: ThinkingViT). Iteration-2 ranking: D1 cascade with
+  cheap-pass reuse; D2 VPFA-style non-linear post-hoc map + ACD-style baselines; D3 native-resolution dataset.
