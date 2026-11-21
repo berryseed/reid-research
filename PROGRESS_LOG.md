@@ -652,3 +652,13 @@ Decision: not promising (dominated by fixed budgets); `sp_mixed` stays the itera
   `REPORT_ITERATION1.md` Section 2.3 added, PrunNet venue, gap bullet 4 narrowed.
 - Gap verdict: valid but narrowed (per-query budget choice: ThinkingViT). Iteration-2 ranking: D1 cascade with
   cheap-pass reuse; D2 VPFA-style non-linear post-hoc map + ACD-style baselines; D3 native-resolution dataset.
+
+## Session 5b (2026-11-21): VPFA-inspired nonlinear map baseline (eval-time only, nothing committed)
+- Script: `nonlinear_map.py` (new), `aggregate_nonlinear.py` (new). Frozen `runs/base_e216_s{0,1,2}/last.pth`; maps fitted on
+  bounding_box_train only (601 FIT / 150 VAL identities, flips), no labels; selection by VAL loss (VAL mAP saturated 99.98).
+- Command: `.venv/Scripts/python.exe nonlinear_map.py --data C:/Users/user/data/Market-1501-v15.09.15 --ckpts runs/base_e216_s{0,1,2}/last.pth --out runs/nonlinear_map/nonlinear_map.csv`
+  (750 s; + 2 smoke tests about 130 s; about 15 GPU-min of the 30-min budget).
+- mAP (3 seeds) raw / ridge (report) / ridge (tuned) / MLP / sp_mixed: 192x96 82.06 / 82.80 / 82.96 / 82.77 / 83.60;
+  160x80 75.72 / 78.96 / 79.16 / 78.61 / 83.01; 128x64 57.45 / 68.88 / 68.84 / 66.88 / 81.50. ridge_report reproduces the report.
+- Conclusion: the nonlinear map does not beat the linear one; sp_mixed stays ahead (+0.64 / +3.85 / +12.6 vs the best map).
+  Details: NONLINEAR_MAPPING_BASELINE.md. REPORT_ITERATION1.md not changed (user request).

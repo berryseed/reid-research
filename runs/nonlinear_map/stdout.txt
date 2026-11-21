@@ -1,0 +1,80 @@
+cached 3368 query, 12936 training images; 601 FIT / 150 VAL training identities (10576 / 2360 images)
+== base_e216_s0: full mAP 85.28 R1 94.48
+  lowres192x96 vpfa: VAL loss 0.13491 (raw 0.15660, ridge 0.13009) at epoch 5, VAL mAP 99.98 (32s)
+  lowres192x96 h2048_wd1e-5: VAL loss 0.12836 (raw 0.15660, ridge 0.13009) at epoch 20, VAL mAP 99.99 (18s)
+  lowres192x96 h512_wd1e-5: VAL loss 0.12803 (raw 0.15660, ridge 0.13009) at epoch 10, VAL mAP 99.99 (17s)
+{'ckpt': 'base_e216_s0', 'setting': 'lowres192x96', 'gflops': 1.62, 'map_name': 'raw', 'mAP': 82.27, 'R1': 93.02, 'val_loss': 0.1566}
+{'ckpt': 'base_e216_s0', 'setting': 'lowres192x96', 'gflops': 1.62, 'map_name': 'ridge_report', 'mAP': 83.05, 'R1': 93.53, 'lam': 1.0, 'fit_images': 6468}
+{'ckpt': 'base_e216_s0', 'setting': 'lowres192x96', 'gflops': 1.62, 'map_name': 'ridge_cv', 'mAP': 83.21, 'R1': 93.53, 'lam': 0.1, 'val_loss': 0.13009}
+{'ckpt': 'base_e216_s0', 'setting': 'lowres192x96', 'gflops': 1.62, 'map_name': 'mlp', 'mAP': 83.12, 'R1': 93.38, 'config': 'h512_wd1e-5', 'hidden': 512, 'val_loss': 0.12803, 'val_map': 99.99, 'best_epoch': 10, 'params': 806656, 'gmacs': 0.0008, 'train_sec': 17.0, 'gpu_b1_ms': 0.212, 'gpu_b256_ms_per_img': 0.00099, 'cpu_b1_ms': 0.1324}
+{'ckpt': 'base_e216_s0', 'setting': 'lowres192x96', 'gflops': 1.62, 'map_name': 'mlp_vpfa_cfg', 'val_loss': 0.13491, 'val_map': 99.98, 'best_epoch': 5, 'train_sec': 32.1}
+  lowres160x80 vpfa: VAL loss 0.30078 (raw 0.36525, ridge 0.28364) at epoch 5, VAL mAP 99.97 (32s)
+  lowres160x80 h2048_wd1e-5: VAL loss 0.28208 (raw 0.36525, ridge 0.28364) at epoch 15, VAL mAP 99.98 (18s)
+  lowres160x80 h512_wd1e-5: VAL loss 0.28162 (raw 0.36525, ridge 0.28364) at epoch 10, VAL mAP 99.98 (19s)
+{'ckpt': 'base_e216_s0', 'setting': 'lowres160x80', 'gflops': 1.122, 'map_name': 'raw', 'mAP': 75.26, 'R1': 88.36, 'val_loss': 0.36525}
+{'ckpt': 'base_e216_s0', 'setting': 'lowres160x80', 'gflops': 1.122, 'map_name': 'ridge_report', 'mAP': 79.06, 'R1': 90.83, 'lam': 1.0, 'fit_images': 6468}
+{'ckpt': 'base_e216_s0', 'setting': 'lowres160x80', 'gflops': 1.122, 'map_name': 'ridge_cv', 'mAP': 79.27, 'R1': 90.86, 'lam': 0.1, 'val_loss': 0.28364}
+{'ckpt': 'base_e216_s0', 'setting': 'lowres160x80', 'gflops': 1.122, 'map_name': 'mlp', 'mAP': 78.76, 'R1': 90.35, 'config': 'h512_wd1e-5', 'hidden': 512, 'val_loss': 0.28162, 'val_map': 99.98, 'best_epoch': 10, 'params': 806656, 'gmacs': 0.0008, 'train_sec': 18.6, 'gpu_b1_ms': 0.2074, 'gpu_b256_ms_per_img': 0.00099, 'cpu_b1_ms': 0.154}
+{'ckpt': 'base_e216_s0', 'setting': 'lowres160x80', 'gflops': 1.122, 'map_name': 'mlp_vpfa_cfg', 'val_loss': 0.30078, 'val_map': 99.97, 'best_epoch': 5, 'train_sec': 31.8}
+  lowres128x64 vpfa: VAL loss 0.62663 (raw 0.76909, ridge 0.59820) at epoch 5, VAL mAP 99.14 (34s)
+  lowres128x64 h2048_wd1e-5: VAL loss 0.60097 (raw 0.76909, ridge 0.59820) at epoch 15, VAL mAP 99.03 (19s)
+  lowres128x64 h512_wd1e-5: VAL loss 0.60445 (raw 0.76909, ridge 0.59820) at epoch 10, VAL mAP 99.04 (18s)
+{'ckpt': 'base_e216_s0', 'setting': 'lowres128x64', 'gflops': 0.72, 'map_name': 'raw', 'mAP': 55.56, 'R1': 68.02, 'val_loss': 0.76909}
+{'ckpt': 'base_e216_s0', 'setting': 'lowres128x64', 'gflops': 0.72, 'map_name': 'ridge_report', 'mAP': 68.99, 'R1': 83.25, 'lam': 1.0, 'fit_images': 6468}
+{'ckpt': 'base_e216_s0', 'setting': 'lowres128x64', 'gflops': 0.72, 'map_name': 'ridge_cv', 'mAP': 69.01, 'R1': 82.96, 'lam': 1.0, 'val_loss': 0.5982}
+{'ckpt': 'base_e216_s0', 'setting': 'lowres128x64', 'gflops': 0.72, 'map_name': 'mlp', 'mAP': 67.13, 'R1': 80.73, 'config': 'h2048_wd1e-5', 'hidden': 2048, 'val_loss': 0.60097, 'val_map': 99.03, 'best_epoch': 15, 'params': 5927680, 'gmacs': 0.00591, 'train_sec': 18.9, 'gpu_b1_ms': 0.2153, 'gpu_b256_ms_per_img': 0.00103, 'cpu_b1_ms': 0.6236}
+{'ckpt': 'base_e216_s0', 'setting': 'lowres128x64', 'gflops': 0.72, 'map_name': 'mlp_vpfa_cfg', 'val_loss': 0.62663, 'val_map': 99.14, 'best_epoch': 5, 'train_sec': 34.2}
+== base_e216_s0 done in 246s (total 273s)
+== base_e216_s1: full mAP 85.00 R1 93.71
+  lowres192x96 vpfa: VAL loss 0.13343 (raw 0.15340, ridge 0.12827) at epoch 5, VAL mAP 100.00 (33s)
+  lowres192x96 h2048_wd1e-5: VAL loss 0.12689 (raw 0.15340, ridge 0.12827) at epoch 20, VAL mAP 100.00 (19s)
+  lowres192x96 h512_wd1e-5: VAL loss 0.12703 (raw 0.15340, ridge 0.12827) at epoch 10, VAL mAP 100.00 (20s)
+{'ckpt': 'base_e216_s1', 'setting': 'lowres192x96', 'gflops': 1.62, 'map_name': 'raw', 'mAP': 81.99, 'R1': 92.1, 'val_loss': 0.1534}
+{'ckpt': 'base_e216_s1', 'setting': 'lowres192x96', 'gflops': 1.62, 'map_name': 'ridge_report', 'mAP': 82.72, 'R1': 92.58, 'lam': 1.0, 'fit_images': 6468}
+{'ckpt': 'base_e216_s1', 'setting': 'lowres192x96', 'gflops': 1.62, 'map_name': 'ridge_cv', 'mAP': 82.88, 'R1': 92.55, 'lam': 0.1, 'val_loss': 0.12827}
+{'ckpt': 'base_e216_s1', 'setting': 'lowres192x96', 'gflops': 1.62, 'map_name': 'mlp', 'mAP': 82.68, 'R1': 92.81, 'config': 'h2048_wd1e-5', 'hidden': 2048, 'val_loss': 0.12689, 'val_map': 100.0, 'best_epoch': 20, 'params': 5927680, 'gmacs': 0.00591, 'train_sec': 18.6, 'gpu_b1_ms': 0.2253, 'gpu_b256_ms_per_img': 0.00099, 'cpu_b1_ms': 0.6223}
+{'ckpt': 'base_e216_s1', 'setting': 'lowres192x96', 'gflops': 1.62, 'map_name': 'mlp_vpfa_cfg', 'val_loss': 0.13343, 'val_map': 100.0, 'best_epoch': 5, 'train_sec': 33.2}
+  lowres160x80 vpfa: VAL loss 0.29182 (raw 0.34294, ridge 0.27332) at epoch 5, VAL mAP 99.99 (32s)
+  lowres160x80 h2048_wd1e-5: VAL loss 0.27044 (raw 0.34294, ridge 0.27332) at epoch 15, VAL mAP 99.99 (18s)
+  lowres160x80 h512_wd1e-5: VAL loss 0.27258 (raw 0.34294, ridge 0.27332) at epoch 5, VAL mAP 99.99 (17s)
+{'ckpt': 'base_e216_s1', 'setting': 'lowres160x80', 'gflops': 1.122, 'map_name': 'raw', 'mAP': 75.63, 'R1': 87.89, 'val_loss': 0.34294}
+{'ckpt': 'base_e216_s1', 'setting': 'lowres160x80', 'gflops': 1.122, 'map_name': 'ridge_report', 'mAP': 78.75, 'R1': 90.32, 'lam': 1.0, 'fit_images': 6468}
+{'ckpt': 'base_e216_s1', 'setting': 'lowres160x80', 'gflops': 1.122, 'map_name': 'ridge_cv', 'mAP': 78.92, 'R1': 90.47, 'lam': 0.1, 'val_loss': 0.27332}
+{'ckpt': 'base_e216_s1', 'setting': 'lowres160x80', 'gflops': 1.122, 'map_name': 'mlp', 'mAP': 78.24, 'R1': 89.85, 'config': 'h2048_wd1e-5', 'hidden': 2048, 'val_loss': 0.27044, 'val_map': 99.99, 'best_epoch': 15, 'params': 5927680, 'gmacs': 0.00591, 'train_sec': 18.1, 'gpu_b1_ms': 0.2039, 'gpu_b256_ms_per_img': 0.00098, 'cpu_b1_ms': 0.5913}
+{'ckpt': 'base_e216_s1', 'setting': 'lowres160x80', 'gflops': 1.122, 'map_name': 'mlp_vpfa_cfg', 'val_loss': 0.29182, 'val_map': 99.99, 'best_epoch': 5, 'train_sec': 32.1}
+  lowres128x64 vpfa: VAL loss 0.61130 (raw 0.71939, ridge 0.58300) at epoch 5, VAL mAP 99.26 (31s)
+  lowres128x64 h2048_wd1e-5: VAL loss 0.57506 (raw 0.71939, ridge 0.58300) at epoch 15, VAL mAP 99.28 (19s)
+  lowres128x64 h512_wd1e-5: VAL loss 0.57642 (raw 0.71939, ridge 0.58300) at epoch 10, VAL mAP 99.34 (17s)
+{'ckpt': 'base_e216_s1', 'setting': 'lowres128x64', 'gflops': 0.72, 'map_name': 'raw', 'mAP': 56.73, 'R1': 70.55, 'val_loss': 0.71939}
+{'ckpt': 'base_e216_s1', 'setting': 'lowres128x64', 'gflops': 0.72, 'map_name': 'ridge_report', 'mAP': 68.14, 'R1': 81.09, 'lam': 1.0, 'fit_images': 6468}
+{'ckpt': 'base_e216_s1', 'setting': 'lowres128x64', 'gflops': 0.72, 'map_name': 'ridge_cv', 'mAP': 68.08, 'R1': 81.03, 'lam': 1.0, 'val_loss': 0.583}
+{'ckpt': 'base_e216_s1', 'setting': 'lowres128x64', 'gflops': 0.72, 'map_name': 'mlp', 'mAP': 66.74, 'R1': 80.4, 'config': 'h2048_wd1e-5', 'hidden': 2048, 'val_loss': 0.57506, 'val_map': 99.28, 'best_epoch': 15, 'params': 5927680, 'gmacs': 0.00591, 'train_sec': 18.6, 'gpu_b1_ms': 0.2166, 'gpu_b256_ms_per_img': 0.00099, 'cpu_b1_ms': 0.6072}
+{'ckpt': 'base_e216_s1', 'setting': 'lowres128x64', 'gflops': 0.72, 'map_name': 'mlp_vpfa_cfg', 'val_loss': 0.6113, 'val_map': 99.26, 'best_epoch': 5, 'train_sec': 31.3}
+== base_e216_s1 done in 241s (total 515s)
+== base_e216_s2: full mAP 85.05 R1 94.06
+  lowres192x96 vpfa: VAL loss 0.11894 (raw 0.13372, ridge 0.11446) at epoch 5, VAL mAP 100.00 (32s)
+  lowres192x96 h2048_wd1e-5: VAL loss 0.11187 (raw 0.13372, ridge 0.11446) at epoch 20, VAL mAP 100.00 (19s)
+  lowres192x96 h512_wd1e-5: VAL loss 0.11197 (raw 0.13372, ridge 0.11446) at epoch 10, VAL mAP 100.00 (17s)
+{'ckpt': 'base_e216_s2', 'setting': 'lowres192x96', 'gflops': 1.62, 'map_name': 'raw', 'mAP': 81.92, 'R1': 92.04, 'val_loss': 0.13372}
+{'ckpt': 'base_e216_s2', 'setting': 'lowres192x96', 'gflops': 1.62, 'map_name': 'ridge_report', 'mAP': 82.62, 'R1': 92.25, 'lam': 1.0, 'fit_images': 6468}
+{'ckpt': 'base_e216_s2', 'setting': 'lowres192x96', 'gflops': 1.62, 'map_name': 'ridge_cv', 'mAP': 82.8, 'R1': 92.37, 'lam': 0.1, 'val_loss': 0.11446}
+{'ckpt': 'base_e216_s2', 'setting': 'lowres192x96', 'gflops': 1.62, 'map_name': 'mlp', 'mAP': 82.52, 'R1': 92.37, 'config': 'h2048_wd1e-5', 'hidden': 2048, 'val_loss': 0.11187, 'val_map': 100.0, 'best_epoch': 20, 'params': 5927680, 'gmacs': 0.00591, 'train_sec': 18.6, 'gpu_b1_ms': 0.2256, 'gpu_b256_ms_per_img': 0.00103, 'cpu_b1_ms': 0.5621}
+{'ckpt': 'base_e216_s2', 'setting': 'lowres192x96', 'gflops': 1.62, 'map_name': 'mlp_vpfa_cfg', 'val_loss': 0.11894, 'val_map': 100.0, 'best_epoch': 5, 'train_sec': 31.9}
+  lowres160x80 vpfa: VAL loss 0.26208 (raw 0.29774, ridge 0.24243) at epoch 5, VAL mAP 99.98 (32s)
+  lowres160x80 h2048_wd1e-5: VAL loss 0.24017 (raw 0.29774, ridge 0.24243) at epoch 15, VAL mAP 99.98 (18s)
+  lowres160x80 h512_wd1e-5: VAL loss 0.23854 (raw 0.29774, ridge 0.24243) at epoch 10, VAL mAP 99.97 (17s)
+{'ckpt': 'base_e216_s2', 'setting': 'lowres160x80', 'gflops': 1.122, 'map_name': 'raw', 'mAP': 76.27, 'R1': 88.42, 'val_loss': 0.29774}
+{'ckpt': 'base_e216_s2', 'setting': 'lowres160x80', 'gflops': 1.122, 'map_name': 'ridge_report', 'mAP': 79.07, 'R1': 90.17, 'lam': 1.0, 'fit_images': 6468}
+{'ckpt': 'base_e216_s2', 'setting': 'lowres160x80', 'gflops': 1.122, 'map_name': 'ridge_cv', 'mAP': 79.3, 'R1': 90.05, 'lam': 0.1, 'val_loss': 0.24243}
+{'ckpt': 'base_e216_s2', 'setting': 'lowres160x80', 'gflops': 1.122, 'map_name': 'mlp', 'mAP': 78.84, 'R1': 89.76, 'config': 'h512_wd1e-5', 'hidden': 512, 'val_loss': 0.23854, 'val_map': 99.97, 'best_epoch': 10, 'params': 806656, 'gmacs': 0.0008, 'train_sec': 16.9, 'gpu_b1_ms': 0.2053, 'gpu_b256_ms_per_img': 0.00098, 'cpu_b1_ms': 0.1141}
+{'ckpt': 'base_e216_s2', 'setting': 'lowres160x80', 'gflops': 1.122, 'map_name': 'mlp_vpfa_cfg', 'val_loss': 0.26208, 'val_map': 99.98, 'best_epoch': 5, 'train_sec': 32.3}
+  lowres128x64 vpfa: VAL loss 0.57219 (raw 0.64660, ridge 0.53358) at epoch 5, VAL mAP 99.12 (32s)
+  lowres128x64 h2048_wd1e-5: VAL loss 0.52156 (raw 0.64660, ridge 0.53358) at epoch 10, VAL mAP 99.21 (18s)
+  lowres128x64 h512_wd1e-5: VAL loss 0.52581 (raw 0.64660, ridge 0.53358) at epoch 5, VAL mAP 99.17 (17s)
+{'ckpt': 'base_e216_s2', 'setting': 'lowres128x64', 'gflops': 0.72, 'map_name': 'raw', 'mAP': 60.07, 'R1': 73.43, 'val_loss': 0.6466}
+{'ckpt': 'base_e216_s2', 'setting': 'lowres128x64', 'gflops': 0.72, 'map_name': 'ridge_report', 'mAP': 69.52, 'R1': 82.72, 'lam': 1.0, 'fit_images': 6468}
+{'ckpt': 'base_e216_s2', 'setting': 'lowres128x64', 'gflops': 0.72, 'map_name': 'ridge_cv', 'mAP': 69.43, 'R1': 82.69, 'lam': 1.0, 'val_loss': 0.53358}
+{'ckpt': 'base_e216_s2', 'setting': 'lowres128x64', 'gflops': 0.72, 'map_name': 'mlp', 'mAP': 66.77, 'R1': 80.02, 'config': 'h2048_wd1e-5', 'hidden': 2048, 'val_loss': 0.52156, 'val_map': 99.21, 'best_epoch': 10, 'params': 5927680, 'gmacs': 0.00591, 'train_sec': 18.3, 'gpu_b1_ms': 0.2152, 'gpu_b256_ms_per_img': 0.00098, 'cpu_b1_ms': 0.6087}
+{'ckpt': 'base_e216_s2', 'setting': 'lowres128x64', 'gflops': 0.72, 'map_name': 'mlp_vpfa_cfg', 'val_loss': 0.57219, 'val_map': 99.12, 'best_epoch': 5, 'train_sec': 32.2}
+== base_e216_s2 done in 234s (total 750s)
+saved runs/nonlinear_map/nonlinear_map.csv; wall 750s
