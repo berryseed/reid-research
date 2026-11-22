@@ -69,7 +69,7 @@ def get_args():
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--no-amp", action="store_true")
     p.add_argument("--resume", action="store_true",
-                   help="continue from <out>/ckpt.pth if it exists (otherwise start fresh)")
+                   help="continue from <out>/ckpt.pth if it exists; start fresh only if <out> has no results")
     p.add_argument("--ckpt-every", type=int, default=1,
                    help="save the resumable <out>/ckpt.pth every N epochs (0 = never)")
     p.add_argument("--keep-ckpt", action="store_true",
@@ -78,6 +78,20 @@ def get_args():
 
 
 PAUSE_EXIT_CODE = 3  # returned when a run stops at an epoch boundary because <out>/STOP exists
+
+
+def refuse_overwrite(out, resume):
+    """Exit (code 1) instead of overwriting an earlier run in `out`.
+
+    The only run allowed into a folder that has results is the resume of an unfinished one (ckpt.pth, no last.pth).
+    log.json alone also counts as results: it is all that a fresh clone has of a finished run.
+    """
+    found = [f for f in ("last.pth", "ckpt.pth", "log.json") if os.path.exists(os.path.join(out, f))]
+    if not found or (resume and "ckpt.pth" in found and "last.pth" not in found):
+        return
+    hint = ("It is an unfinished run: add --resume to continue it, or choose a new --out."
+            if "ckpt.pth" in found and "last.pth" not in found else "Choose a new --out.")
+    raise SystemExit(f"refusing to overwrite {out} (found {', '.join(found)}). {hint}")
 
 
 def save_resume_ckpt(path, **state):
@@ -89,6 +103,7 @@ def save_resume_ckpt(path, **state):
 
 def main():
     args = get_args()
+    refuse_overwrite(args.out, args.resume)  # before anything is written
     set_seed(args.seed)
     os.makedirs(args.out, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

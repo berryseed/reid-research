@@ -662,3 +662,49 @@ Decision: not promising (dominated by fixed budgets); `sp_mixed` stays the itera
   160x80 75.72 / 78.96 / 79.16 / 78.61 / 83.01; 128x64 57.45 / 68.88 / 68.84 / 66.88 / 81.50. ridge_report reproduces the report.
 - Conclusion: the nonlinear map does not beat the linear one; sp_mixed stays ahead (+0.64 / +3.85 / +12.6 vs the best map).
   Details: NONLINEAR_MAPPING_BASELINE.md. REPORT_ITERATION1.md not changed (user request).
+
+## Session 5c (2026-11-21): mechanism diagnostic (eval only, nothing committed)
+- New: `mech_diag.py`, `aggregate_mech_diag.py`, `MECHANISM_ANALYSIS.md`; outputs `runs/mech_diag/` (mech_diag.csv, agg.md, mech_diag.png, *.npz, stdout.txt, mech_diag_check.csv).
+- Command: `.venv/Scripts/python.exe mech_diag.py --data C:/Users/user/data/Market-1501-v15.09.15 --ckpts runs/{base_e216,sp_mixed,sp_lowres,sp_merge_r,tbsd,tbsd_nosd}_s{0,1,2}/last.pth --out runs/mech_diag/mech_diag.csv`
+  264 s + check run on base_e216_s0 48 s = about 5.2 GPU-min (budget 20). Asymmetric values reproduce stored results.
+- Finding: symmetric (cheap vs cheap) mAP < asymmetric for all models; baseline at 160x80 sym 70.92 vs asym 75.72, sp_mixed 82.26 vs 83.01
+  -> baseline loses discriminative information (not mainly compatibility); sp_mixed is near resolution-invariant (q_cos 0.953 vs 0.770).
+  Alignment ablation (tbsd vs tbsd_nosd, r=11): q_cos 0.942 vs 0.916, asym 81.78 vs 80.84. Full-cost deficit co-occurs with higher hardest-negative sim.
+- Report unchanged.
+
+## Session 6 (2026-11-22): supervisor-review audit (no training, no evaluation runs, no Git operations)
+- User request: audit, complete the report, write the brief, list issues; no new experiments; Git left to the user.
+- Checks (scratchpad scripts, CPU): per-seed recomputation of the benchmark tables; `log.json` vs stdout vs
+  sweep; 50 checkpoints distinct; split and MD5 overlap (none); `evaluate_rank` vs brute force (exact);
+  `bipartite_merge` vs a transcription of the official ToMe class-token path on random tensors (**not
+  identical**: same token set 56/64, 29/64, 10/64 at r = 3, 7, 11; downloaded code read, not executed).
+- Literature check (WebSearch, 2 web-fetch agents): DaRe CVPR 2018 (Sections 4, 5.3 read from the PDF), MatFormer
+  NeurIPS 2024 and BTNet BMVC 2023 (partial reads). All three narrow the gap; per-query claim withdrawn.
+- Corrections C1-C24 and additions: `SUPERVISOR_REVIEW_AUDIT.md`. Among them: 50 real runs (not 57); peak VRAM
+  3.17 GB (not 4.9); `sp_mixed` vs `fg_mixed` = tie at trained budgets; 216-epoch baseline better at 224x112.
+- Files: `REPORT_ITERATION1.md` revised (new 6.10-6.12, 7.1/7.2); new `SUPERVISOR_BRIEF.md`,
+  `SUPERVISOR_REVIEW_AUDIT.md`; `PROGRESS.md`, `RESEARCH_LOG.md` updated. No code or file in `runs/` changed.
+
+## Session 6b (2026-11-22): Q&A and study guide updated; session-6 audit corrected (no experiments, no Git operations)
+- User request: update `SUPERVISOR_QA.md` and `STUDY_GUIDE.md` to the audited report.
+- Re-check found errors in session 6 itself (audit Section 5, E1-E9). Main one: "tie" used combined std only;
+  with seed-paired std the leads over `fg_mixed` at r = 11 and 128x64 pass 2 (2.8, 2.1). Now judged both ways:
+  clear / borderline / tie. Session 6's "`sp_mixed` vs `fg_mixed` = tie at trained budgets" and "216-epoch
+  baseline better at 224x112" are superseded: both borderline.
+- Hazard found: documented reproduction commands wrote to existing result paths (audit D17). Study guide
+  Section 15 now uses `runs/repro_*`; warning added in PROGRESS.md. **Do not re-run commands from this log as written.**
+- Files: both documents, report, brief, audit, PROGRESS.md, RESEARCH_LOG.md. No code or file in `runs/` changed.
+
+## Session 6c (2026-11-22): README commands made overwrite-safe (no experiments, no Git operations)
+- User request: fix README. Outputs moved to `runs/repro_*`, `runs/smoke_repro`, `fake_market_repro`; each command
+  guarded by `[ -e <out> ] ||`; resume guarded on `ckpt.pth` present and `last.pth` absent; queues marked do-not-rerun
+  (`run_iter1.sh` overwrites committed logs in a clone without checkpoints).
+- Audit D17 and the report's reproduction note updated. Scripts themselves still have no overwrite guard.
+
+## Session 6d (2026-11-22): overwrite guard in train.py (no training steps, no Git operations)
+- User request: add a guard. `refuse_overwrite(out, resume)` runs right after argument parsing: exits with code 1 if
+  `<out>` has `last.pth`, `ckpt.pth` or `log.json`, unless `--resume` with `ckpt.pth` and no `last.pth`.
+- Tests (CPU, synthetic, `--epochs 0`): 18/18 cases (5/18 before the change); 57/57 local and 50/50 fresh-clone
+  run folders refused; syntax tree of the training logic identical to before; `run_iter1.sh` in a sandbox kept
+  the committed log and still started a new run.
+- Not covered: evaluation/aggregation scripts; two simultaneous launches into one folder.

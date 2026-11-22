@@ -1,0 +1,7 @@
+ckpt,setting,gflops,map_name,mAP,R1,val_loss,lam,fit_images,val_by_lam,config,hidden,val_map,best_epoch,params,gmacs,train_sec,gpu_b1_ms,gpu_b256_ms_per_img,cpu_b1_ms
+base_e216_s0,full,2.93,raw,85.28,94.48,,,,,,,,,,,,,,
+base_e216_s0,lowres160x80,1.122,raw,75.26,88.36,0.36525,,,,,,,,,,,,,
+base_e216_s0,lowres160x80,1.122,ridge_report,79.06,90.83,,1.0,6468,,,,,,,,,,,
+base_e216_s0,lowres160x80,1.122,ridge_cv,79.27,90.86,0.28364,0.1,,"{'0.1': 0.28364, '1.0': 0.28426, '10.0': 0.30942, '100.0': 0.44017}",,,,,,,,,,
+base_e216_s0,lowres160x80,1.122,mlp,78.69,90.44,0.27609,,,,vpfa,2048,99.98,1,5927680,0.00591,3.8,0.2145,0.00098,0.5997
+base_e216_s0,lowres160x80,1.122,mlp_vpfa_cfg,,,0.27609,,,,,,99.98,1,,,3.8,,,

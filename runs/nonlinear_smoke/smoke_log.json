@@ -1,0 +1,120 @@
+{
+ "base_e216_s0/lowres160x80": {
+  "grid": {
+   "vpfa": {
+    "val_loss": 0.27609,
+    "val_map": 99.98,
+    "best_epoch": 1,
+    "train_sec": 3.8,
+    "hist": [
+     {
+      "epoch": 1,
+      "train_loss": 0.26968,
+      "val_loss": 0.27609,
+      "val_map": 99.98
+     },
+     {
+      "epoch": 2,
+      "train_loss": 0.23303,
+      "val_loss": 0.27644,
+      "val_map": 99.98
+     },
+     {
+      "epoch": 3,
+      "train_loss": 0.20938,
+      "val_loss": 0.28086,
+      "val_map": 99.97
+     }
+    ]
+   },
+   "h2048_wd1e-5": {
+    "val_loss": 0.29279,
+    "val_map": 99.97,
+    "best_epoch": 3,
+    "train_sec": 0.8,
+    "hist": [
+     {
+      "epoch": 1,
+      "train_loss": 1.67784,
+      "val_loss": 0.30774,
+      "val_map": 99.96
+     },
+     {
+      "epoch": 2,
+      "train_loss": 0.29956,
+      "val_loss": 0.294,
+      "val_map": 99.98
+     },
+     {
+      "epoch": 3,
+      "train_loss": 0.28909,
+      "val_loss": 0.29279,
+      "val_map": 99.97
+     }
+    ]
+   },
+   "h512_wd1e-5": {
+    "val_loss": 0.28861,
+    "val_map": 99.98,
+    "best_epoch": 3,
+    "train_sec": 0.7,
+    "hist": [
+     {
+      "epoch": 1,
+      "train_loss": 0.39427,
+      "val_loss": 0.29521,
+      "val_map": 99.98
+     },
+     {
+      "epoch": 2,
+      "train_loss": 0.28809,
+      "val_loss": 0.29097,
+      "val_map": 99.98
+     },
+     {
+      "epoch": 3,
+      "train_loss": 0.28399,
+      "val_loss": 0.28861,
+      "val_map": 99.98
+     }
+    ]
+   },
+   "h512_wd1e-3": {
+    "val_loss": 0.28941,
+    "val_map": 99.98,
+    "best_epoch": 3,
+    "train_sec": 0.7,
+    "hist": [
+     {
+      "epoch": 1,
+      "train_loss": 0.39361,
+      "val_loss": 0.29425,
+      "val_map": 99.98
+     },
+     {
+      "epoch": 2,
+      "train_loss": 0.28853,
+      "val_loss": 0.29104,
+      "val_map": 99.97
+     },
+     {
+      "epoch": 3,
+      "train_loss": 0.2853,
+      "val_loss": 0.28941,
+      "val_map": 99.98
+     }
+    ]
+   }
+  },
+  "ridge_val": {
+   "lam": 0.1,
+   "val_loss": 0.28364,
+   "val_by_lam": {
+    "0.1": 0.28364,
+    "1.0": 0.28426,
+    "10.0": 0.30942,
+    "100.0": 0.44017
+   }
+  }
+ }
+}

@@ -802,3 +802,55 @@ from the cheap search) is kept as a finding.
   re-implemented in our setting; negative results; limitations; conclusions; iteration-2 plan.
 - `STUDY_GUIDE.md` (beginner explanation of everything) and `SUPERVISOR_QA.md` (about 35 questions with answers).
 - Total training compute of the project: 13.4 GPU-hours over 57 runs (sum of `train_hours` in `log.json`).
+
+# Part 9. Audit before supervisor review (2026-11-22)
+
+## 9.1 Why audit results that already reproduce
+A correct table can carry a wrong sentence. We recomputed each table from per-seed files and then tested each
+sentence against it. The tables held; about two dozen statements did not (`SUPERVISOR_REVIEW_AUDIT.md`).
+
+## 9.2 The noise rule, applied consistently
+**Corrected in Part 10: this section used only one of two possible std definitions.**
+For two methods with 3 independent seeds, the spread of the difference is `sqrt(sd_a^2 + sd_b^2)`. For `sp_mixed`
+vs the frozen-gallery student at r = 11: difference 0.88, spread `sqrt(0.27^2 + 0.54^2) = 0.61`, ratio 1.4. Our
+rule requires 2, so this is a tie. It had been called "about 2 std, suggestive".
+
+## 9.3 Why an equality check passed on code that differs
+ToMe splits tokens alternately into sets A and B. With a class token, the official code splits the sequence
+*including* that token, so patch 0 lands in B. We split only the patches, so patch 0 lands in A. The official
+code also re-sorts the unmerged tokens, which changes the next block's split. Our check removed the class token
+before calling the reference, which made the two partitions equal by construction. Lesson: a reference test
+must call the reference with the arguments the real model uses.
+
+## 9.4 Why "symmetric < asymmetric" does not prove information loss
+Same-budget retrieval degrades the gallery as well as removing the compatibility requirement. A full gallery can
+be so much better that asymmetric wins even when the cheap query is badly misplaced. The baseline at 128x64
+shows it: a linear map lifts asymmetric mAP from 57.45 to 68.88, while same-budget mAP is 48.07. The same-budget
+score is therefore no ceiling on what the cheap embedding contains.
+
+## 9.5 What the gap became
+DaRe (2018) did per-query re-ID budgets from gallery distance, MatFormer (2024) did one-ViT cheap-query
+retrieval, BTNet (2023) did resolution-dependent compute with compatible embeddings. What remains is the
+combination of both input knobs for ViT re-ID and its cost account: a study, not a new mechanism.
+
+# Part 10. Correcting the audit (2026-11-22, second pass)
+
+## 10.1 One rule, two definitions
+"About 2 std" is incomplete until it says the std of what. Combined std `sqrt(sd_a^2 + sd_b^2)` assumes
+independent runs. Paired std (of per-seed differences) removes noise that runs with the same seed share. For
+`sp_mixed` vs the student at r = 11 they give ratios 1.4 and 2.8. Part 9.2 reported only the first, while the
+paired one had been used at 192x96 to weaken a win. Choosing the definition per comparison biases the
+conclusions, whichever direction it happens to favour.
+
+## 10.2 The convention now
+Compute both for every comparison: clear (both at least 2), tie (both below 2), borderline (they disagree). It
+was fixed after seeing the results, so it only describes them. Borderline results need more seeds and, for
+iteration 2, a rule written down before the runs.
+
+# Part 11. Overwrite guard in train.py (2026-11-22)
+
+Checkpoints are the only irreplaceable evidence (not in Git), and `train.py` would replace one silently. Two
+decisions in the guard matter. (1) `log.json` alone blocks a run, because in a fresh clone it is all that exists
+of a finished run. (2) `--resume` into a folder without results still starts fresh, because the queues pass it
+for every run. The check precedes seeding and draws no random numbers, so it cannot change a training result.
+A run killed before its first checkpoint needs a new `--out`; that small inconvenience is the price.

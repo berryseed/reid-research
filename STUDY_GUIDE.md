@@ -1,9 +1,9 @@
 # Study guide: cheap queries against a full-cost gallery in ViT person re-identification
 
-Written 2026-11-17 for the author of this project. It explains, from the beginning, everything needed to
+Written 2026-11-17 for the author of this project; revised 2026-11-22 to match the audited report. It explains, from the beginning, everything needed to
 understand, reproduce and defend iteration 1. Read it top to bottom once; afterwards use it as a reference.
 Numbers are from our own runs (Market-1501, ViT-S/16, mean of 3 seeds unless stated); sources are given in
-`REPORT_ITERATION1.md`. Words in **bold** are defined where they first appear.
+`REPORT_ITERATION1.md`; known issues are in `SUPERVISOR_REVIEW_AUDIT.md`. Words in **bold** are defined where they first appear.
 
 Contents
 1. The problem in plain words
@@ -34,7 +34,7 @@ by other cameras. A neural network turns each image into a list of numbers (a ve
 The collection (the **gallery**) is processed once, in advance, on a big machine. The image we search with
 (the **query**) arrives later and may be processed on a weak device, so we want the query to be cheap to
 compute. The catch: a cheap query vector must still be *comparable* with gallery vectors that were computed
-the expensive way. If it is not, search quality collapses.
+the expensive way. If it is not, search quality can collapse.
 
 Our project thesis is "accuracy per unit of compute, labels and training time". Iteration 1 asks:
 how much accuracy do we lose when only the query is made cheap, why, and what is the cheapest way to train a
@@ -105,38 +105,49 @@ cosine is just the dot product. Higher = more similar.
 
 - **Batches by identity (PK sampling):** each batch has P = 16 people x K = 4 images = 64 images, so every
   batch contains positive pairs (same person) and negative pairs.
-- **Identity loss:** cross-entropy on the 751 logits with **label smoothing** 0.1 (the target is 0.9 on the
-  true person and 0.1 spread over the rest; reduces over-confidence).
+- **Identity loss:** cross-entropy on the 751 logits with **label smoothing** 0.1 (0.1 of the target is spread
+  evenly over all 751 people, so the true person gets 0.9 + 0.1/751; reduces over-confidence).
 - **Triplet loss (batch-hard):** for each image (the *anchor*), take the furthest same-person image (hardest
   positive) and the closest other-person image (hardest negative); loss = max(0, d(anchor, pos) −
   d(anchor, neg) + 0.3). It pushes same-person images together and others apart by a margin of 0.3.
 - **Optimiser:** SGD with momentum 0.9, weight decay 1e-4, learning rate 0.008, 5 warm-up epochs then cosine
   decay; 120 epochs x 202 steps; mixed precision (AMP) on an RTX 5080. One run takes about 0.22 GPU-hours.
 - Our ordinary model ("baseline") reaches **84.45 ± 0.49 mAP** at full cost. Trained for 216 epochs (the
-  **equal-GPU-hour baseline**) it reaches 85.11.
+  **similar-GPU-hour baseline**, called "equal-GPU-hour" in older documents) it reaches 85.11.
 
 ## 5. Making a query cheaper: tokens and resolution
 
 The cost of a ViT grows with the number of tokens n: the linear layers cost about n·d², attention about n²·d.
 Two ways to reduce n without changing the weights:
 
-### 5.1 Token merging (ToMe, Bolya et al., ICLR 2023)
+### 5.1 Token merging (ToMe-style, after Bolya et al., ICLR 2023)
 In each block, after attention, the tokens are split alternately into two sets A and B. For each token in A
 find its most similar token in B (cosine of the attention keys). Merge the r most similar pairs by averaging
 them (weighted by how many original patches each already represents). After 12 blocks with r = 11, the 128
 patch tokens shrink gradually and the cost falls to 1.41 GFLOPs (48 % of 2.93). This is **gradual merging**
-(`merge_r` in our code). Our earlier **3-stage** schedule removed half the tokens at once after blocks 4, 7 and
-10; that turned out to be much worse (Section 9.2).
+(`merge_r` in our code). Our earlier **3-stage** schedule removed up to half the tokens at once inside blocks 4,
+7 and 10; that turned out to be much worse (Section 9.2).
+
+**Our merging is not official ToMe.** The difference is which tokens may pair up:
+- official ToMe alternates over the whole sequence, class token included: `A = {CLS, p1, p3, ...}`,
+  `B = {p0, p2, ...}`, and CLS is forbidden to merge;
+- our code alternates over the patches only: `A = {p0, p2, ...}`, `B = {p1, p3, ...}`.
+
+Each token of A picks a partner in B, and several may pick the same one, so swapping the sets changes the result.
+Official ToMe also re-sorts the surviving tokens, which changes the split in the next block. Token counts and
+GFLOPs are the same; the merged tokens are often not (one step at r = 11 on random input: the same in 10 of 64
+samples). An earlier check reported "difference 0" because it removed the class token before calling the
+reference, which made the two splits equal by construction.
 
 ### 5.2 Lower input resolution
-Resize the image before the network: 192x96 gives 12x6 = 72 patches, 160x80 gives 50, 128x64 gives 32. The
+Resize the image before the network: 224x112 gives 14x7 = 98 patches, 192x96 gives 12x6 = 72, 160x80 gives 50, 128x64 gives 32. The
 position embedding (learned for a 16x8 grid) is resized to the new grid by bicubic interpolation
-(`resample_abs_pos_embed` from timm). Costs: 1.62, 1.12 and 0.72 GFLOPs.
+(`resample_abs_pos_embed` from timm). Costs: 2.22, 1.62, 1.12 and 0.72 GFLOPs.
 
 ### 5.3 Other selection rules we tested
 - **Random:** keep a random subset of tokens.
 - **Class-attention top-k (EViT, ICLR 2022):** keep the tokens the class token attends to most; fuse the rest
-  into one token. Surprisingly, this was *worse than random* for our purpose (Section 12).
+  into one token. Surprisingly, this scored *below random* for our purpose (Section 12).
 
 ## 6. Asymmetric retrieval and "drift"
 
@@ -144,11 +155,14 @@ position embedding (learned for a 16x8 grid) is resized to the new grid by bicub
   Asymmetric is the realistic setting: the gallery is computed once, at full quality.
 - **Drift:** the cheap embedding of an image is not exactly its full-cost embedding. We measure it with
   `q_cos = cos(f(x; cheap), f(x; full))` averaged over queries (1 = no drift).
-- An ordinary model drifts a lot under abrupt reduction: at 128x64, `q_cos` ≈ 0.61 and mAP drops from 84.45 to
+- An ordinary model drifts a lot under strong reduction: at 128x64, `q_cos` ≈ 0.61 and mAP drops from 84.45 to
   60.13. The model was never trained to give the same answer from fewer tokens.
-- We found the drift is **per image**, not a shared shift: subtracting an average offset fixes almost nothing
-  (offset fraction 0.03-0.18). A closed-form linear map (ridge regression from cheap to full embeddings,
-  fitted on training images) recovers part of it (+1 to +4 mAP).
+- The drift is **mostly per image**: a shared offset explains 3-18 % of it. Correcting the average offset gains
+  0 to +3.8 mAP. A closed-form linear map (ridge regression from cheap to full embeddings, fitted on training
+  images) gains −0.1 to +8.9, most where drift is large.
+- **A trap in interpreting this.** For the baseline, cheap-vs-cheap mAP is lower than cheap-vs-full. That does
+  *not* prove the cheap embedding lost information rather than moved: cheap-vs-cheap also degrades the gallery.
+  At 128x64 a linear map lifts cheap-vs-full to 68.88, far above cheap-vs-cheap (48.07).
 
 ## 7. What we built: two-pass multi-budget training (`sp_mixed`)
 
@@ -172,40 +186,63 @@ At test time: the gallery uses the full pass; a query uses whichever cheap budge
 
 ### 7.3 The mathematics, term by term
 Let `f(x; b)` be the L2-normalised BNNeck embedding at budget b, y the identity label.
-1. `L_id(b) = CE(W f(x; b), y)` with label smoothing. Because W is **shared** between the two passes, both
-   embeddings must place a person on the same side of the same class boundaries: this alone creates a lot of
-   compatibility (the idea of BCT, Shen et al. CVPR 2020).
+1. `L_id(b) = CE(W f̃(x; b), y)` with label smoothing, where `f̃` is the BNNeck output *before* normalisation.
+   W is **shared** between the two passes, so both embeddings must place a person on the same side of the same
+   class boundaries (the idea of BCT, Shen et al. CVPR 2020). We never tested how much this alone contributes.
 2. `L_tri(b)`: batch-hard triplet on the pre-BNNeck feature, as in the baseline.
 3. `L_align = mean_i [1 − cos(f(x_i; b), sg f(x_i; full))]`. `sg` = stop-gradient: the full embedding is treated
-   as a fixed target in this term, so the cheap pass moves towards the full one and not the reverse. This is
-   the standard feature term of asymmetric retrieval (D3still's `L_f`, Suma and Tolias's `l_abs`).
+   as a fixed target in this term, so it has no direct gradient. The shared weights still change it indirectly.
+   This is the same family as, not identical to, the feature terms of asymmetric retrieval. With `c_i = 1 − cos`
+   for image i: ours is `mean(c_i)`, D3still's `L_f` is `sqrt(sum c_i²) / n`, Suma and Tolias's `l_abs` is `c_i²`.
 Total: `L = L_id(full) + L_tri(full) + L_id(b) + L_tri(b) + λ L_align`, λ = 1.
 
 ### 7.4 Why "mixed"
 We tried three versions (3 seeds each): cheap pass always low resolution (`sp_lowres`), always gradual merging
-(`sp_merge_r`), or either at random (`sp_mixed`). Each specialist only becomes compatible on its own knob;
-`sp_mixed` is compatible on both, at almost no cost on either (Section 9.3). So `sp_mixed` is our method.
+(`sp_merge_r`), or either at random (`sp_mixed`). Each specialist carries over only partly to the other knob;
+`sp_mixed` works on both, at or slightly below the merge specialist under merging (Section 9.3). So `sp_mixed` is
+our method. It was chosen on test results (Section 12).
 
 ### 7.5 What is NOT new (say this clearly)
-Two passes through shared weights with a shared classifier (SFSC's BCT-S baseline), the alignment loss
-(D3still, Suma and Tolias), multi-resolution training with a detached higher-resolution teacher (ResFormer),
-token merging (ToMe). Our contribution is applying and combining them for **input-side compute knobs** in
-compatible re-ID retrieval, and evaluating the result against equal-budget baselines with measured latency.
-The revised project rule (2026-11-17) accepts a combination of existing techniques if prior work is credited.
+- **Components:** two passes with a shared classifier (BCT, SFSC), alignment to the full embedding (D3still,
+  Suma and Tolias), multi-resolution training with a detached higher-resolution teacher (ResFormer), token
+  merging (ToMe).
+- **Settings:** one ViT with cheap queries against its full gallery (MatFormer), resolution-dependent compute
+  with compatible embeddings (BTNet), per-query budgets in re-ID (DaRe).
+
+What we did not find is the combination of both input knobs in one compatible ViT re-ID model with a cost
+account. That is an empirical contribution. The revised project rule (2026-11-17) accepts a combination of
+existing techniques if prior work is credited.
 
 ## 8. The baselines, and why each one is there
 
 | Baseline | What it tests |
 | --- | --- |
 | Ordinary model, 120 epochs, cheap queries without retraining | How bad the problem is without any fix |
-| **Equal-GPU-hour baseline**: ordinary model trained 216 epochs | Our method trains about 1.6-2x longer; is the gain just "more training"? |
+| **Similar-GPU-hour baseline**: ordinary model trained 216 epochs | Our method trains about 1.8x longer; is the gain just "more training"? |
 | Same + **linear map** from cheap to full embeddings | A nearly free training-free correction |
+| Same + **VPFA-inspired MLP map** | Does a non-linear correction close the gap? (No) |
+| Single-knob specialists (`sp_lowres`, `sp_merge_r`) | Is mixing the knobs needed? |
 | 3-stage TBSD probe (our first attempt) | Our own earlier method, kept for honesty |
-| Multi-budget training without the alignment term | Is the alignment loss needed? |
-| **Frozen-gallery student** (`fg_mixed`) in the style of Suma and Tolias | The closest prior-work scheme: freeze the gallery model, train a copy for cheap queries without labels |
+| Multi-budget training without the alignment term | Is the alignment loss needed? (3-stage schedule only) |
+| **Frozen-gallery student** (`fg_mixed`) in the style of Suma and Tolias | Freeze the gallery model, train a copy for cheap queries with a label-free loss (the batch sampler still uses labels) |
 
-Rule used throughout: 3 seeds per configuration, mean ± standard deviation; a difference smaller than about
-two standard deviations is not called a result.
+Not run, and important: single-pass multi-resolution augmentation, and a small model at equal GFLOPs.
+
+### 8.1 When is a difference a result?
+With three seeds per method there are two ways to measure the noise of a difference:
+- **combined:** `sqrt(sd_a² + sd_b²)`, treating all runs as independent;
+- **paired:** subtract seed by seed, then take the std of those three differences. Seed i shares batch order
+  and head initialisation across methods, so some noise cancels.
+
+We divide the mean difference by each. **Clear:** at least 2 both ways. **Tie:** below 2 both ways (this means
+"not separated", not "equal"). **Borderline:** the two disagree.
+
+Worked example, `sp_mixed` vs the student at r = 11. The means are 82.38 and 81.50, so the difference is 0.88.
+- combined: `sqrt(0.27² + 0.54²) = 0.61`, ratio 1.4;
+- paired: std of the differences 0.32, ratio 2.8;
+- verdict: borderline. Do not claim it; more seeds would settle it.
+
+This convention is a heuristic, fixed after the results were known. It is not a significance test.
 
 ## 9. Results and what they mean
 
@@ -213,33 +250,38 @@ two standard deviations is not called a result.
 Ordinary model, asymmetric mAP: full 84.45; low resolution 192x96 81.38, 160x80 75.81, 128x64 60.13; gradual
 merging r = 11: 77.45; 3-stage merging at half the tokens: 68.56.
 
-### 9.2 How you cut matters more than how much
-At about the same cost (1.4-1.5 GFLOPs) the ordinary model scores 68.6 (3-stage), 77.5 (gradual merging) or
-about 79.6 (low resolution, interpolated). Removing tokens early (block 4) is what hurts: halving at block 4
-only costs 3.8 mAP, at block 10 only 0.2. Our first method looked +13 mAP better only because it was compared
-with the worst schedule; against the best training-free option the gain was about +2.4.
+### 9.2 How you cut matters
+At nearly the same cost the ordinary model scores 68.55 (3-stage, 1.46 GFLOPs) and 77.45 (gradual merging,
+1.41). Low resolution, interpolated, gives about 79.0 at 1.41, only about one std above gradual merging (std
+1.39). Removing tokens early is what hurts: halving only at block 4 costs 3.8 mAP, only at block 10 costs 0.2.
+Our first method looked +13 mAP better because it was compared with the worst schedule. Against the 216-epoch
+baseline + linear map it is better under merging (+2.1 at r = 11) and not better at low resolution.
 
 ### 9.3 The method (`sp_mixed`) vs baselines (asymmetric mAP, 3 seeds)
-| Query | GFLOPs | 216-ep baseline + linear map | `sp_mixed` | frozen-gallery student |
-| --- | --- | --- | --- | --- |
-| full | 2.93 | 85.11 | 83.95 | 84.45 |
-| 192x96 | 1.62 | 82.80 | 83.60 | 83.68 |
-| merge r=11 | 1.41 | 79.70 | 82.38 | 81.50 |
-| 160x80 | 1.12 | 78.96 | 83.01 | 82.78 |
-| 128x64 | 0.72 | not measured | 81.50 | 80.48 |
+| Query | GFLOPs | 216-ep baseline, best map | Frozen-gallery student | `sp_mixed` | vs baseline | vs student |
+| --- | --- | --- | --- | --- | --- | --- |
+| full | 2.93 | 85.11 | 84.45 | 83.95 | −1.16, clear | −0.50, tie |
+| 192x96 | 1.62 | 82.96 | 83.68 | 83.60 | +0.64, borderline | −0.07, tie |
+| merge r = 11 | 1.41 | 79.70 | 81.50 | 82.38 | +2.68, clear | +0.88, borderline |
+| 160x80 | 1.12 | 79.16 | 82.78 | 83.01 | +3.85, clear | +0.23, tie |
+| 128x64 | 0.72 | 68.88 | 80.48 | 81.50 | +12.61, clear | +1.02, borderline |
 
 How to read it:
-- Below about 1.7 GFLOPs our method beats the equal-budget baseline by +0.8 to +4.1 mAP.
-- At full cost it is 1.16 below: one set of weights serving all budgets costs some full-cost accuracy.
-- The prior-work-style frozen-gallery student ties it on low resolution and has no full-cost loss, but needs
-  two sets of weights. Our method is about 1 mAP better under merging and at 128x64 (suggestive, 3 seeds).
-- Training-time budgets are only approximately equal (stated in the report).
+- At 1.41 GFLOPs and below, our method clearly beats the corrected baseline. At 1.62 the win is borderline.
+- At higher budgets the advantage is gone: a tie at 1.94, borderline behind at 2.22, clearly 1.16 behind at
+  full cost.
+- It is **not clearly better than the frozen-gallery student**: ties, plus two borderline leads of about 1 mAP.
+  The practical difference is one set of weights against two.
+- "Best map" is picked on test, which favours the baseline. Non-linear maps were not tested on merging.
+- Training budgets are only similar (Section 11.3).
 
 ### 9.4 Latency (measured, not estimated)
-On the GPU with one image at a time, every setting costs about 6 ms: the GPU is waiting on overheads, not on
+On the GPU with one image at a time, every resolution costs about 6 ms: the GPU is waiting on overheads, not on
 arithmetic. Gradual merging is even **2.3x slower** there (its matching step runs in every block). Savings
 appear with large batches and on the CPU: 160x80 is 2.67x faster at GPU batch 256 and 1.69x on CPU batch 1;
-128x64 3.9x and 2.0x. On Market-1501, resolution beats merging in both speed and accuracy.
+128x64 3.9x and 2.0x; 192x96 only 1.9x and 1.4x. Resolution is mostly faster than merging at similar GFLOPs. In
+accuracy it is ahead at about 1.41 GFLOPs and equal at 1.94. Between two sessions CPU timings varied 9-17 % at
+batch 1 and 17-46 % at batch 8, so treat the batch-8 numbers as rough.
 
 ### 9.5 ViT-B (one seed, indicative)
 Same pattern, larger full-cost deficit (2.7 mAP), and worse accuracy per GFLOP than ViT-S. ViT-S stays.
@@ -248,13 +290,11 @@ Same pattern, larger full-cost deficit (2.7 mAP), and worse accuracy per GFLOP t
 
 Full numbers: `REPORT_ITERATION1.md` Section 6.9 and figure `runs/adaptive.png`.
 
-**Result in two sentences.** The confidence score works: the cheap query's top-1 gallery similarity picks the
-queries that need escalation as well as an oracle that knows the true drift, and far better than random
-(e.g. baseline from 160x80 at p = 0.3: 80.91 vs random 78.32, oracle 80.80). But the cascade still loses to
-simply giving every query one intermediate resolution at the same average cost (our method: −0.1 to −0.7 mAP),
-because an escalated query pays twice and the fixed-budget curve is concave (it rises steeply at first, then
-flattens). So the cascade is reported as a preliminary negative result and becomes iteration-2 work, where the
-cheap pass would be reused instead of paid twice.
+**Result in brief.** The cascade loses to giving every query one intermediate resolution at the same average
+cost (our method: −0.07 to −0.68 mAP), because an escalated query pays twice and the fixed-budget curve is
+concave (it rises steeply, then flattens). The routing signal itself is better than random (e.g. baseline from
+160x80 at p = 0.3: 80.91 vs random 78.32, drift oracle 80.80), but the idea is prior work (DaRe, CVPR 2018). It is
+reported as a negative result; reusing the cheap pass is possible iteration-2 work.
 
 The idea in brief:
 - **Intuition:** most queries are easy; spend full compute only on the hard ones.
@@ -262,11 +302,12 @@ The idea in brief:
   (the cheap query's highest cosine similarity to the gallery, `top-1`). Re-embed the fraction p of queries
   with the lowest confidence at full cost and search again.
 - **Average cost:** `g_cheap + p · g_full` (the cheap pass is already paid for the escalated queries).
-- **Controls:** random escalation (does the score carry information?) and an oracle that escalates the queries
-  whose cheap embedding drifted most (needs the full embedding; upper bound only).
-- **Prior work:** RANet (CVPR 2020, resolution cascade) and DVT (NeurIPS 2021, token-count cascade) do this
-  for classification with softmax confidence. Using retrieval similarity as the confidence is a
-  query-performance-prediction idea (iQPP benchmark, 2023). Ours is an adaptation, evaluation-only.
+- **Controls:** random escalation (does the score carry information?) and a drift oracle that escalates the
+  queries whose cheap embedding moved most. It needs the full embedding and is **not an upper bound**: it can be
+  beaten (80.91 vs 80.80 above), because the most-moved query is not always the one that gains most.
+- **Limit:** p is applied to the ranking of all test queries at once, so the rule assumes they are known together.
+- **Prior work:** DaRe (CVPR 2018) routes re-ID queries by nearest-gallery distance, the same signal. RANet
+  (CVPR 2020) and DVT (NeurIPS 2021) use cascades for classification with softmax confidence.
 
 ## 11. Cost: GFLOPs, latency, GPU-hours
 
@@ -283,40 +324,60 @@ CPU (8 threads) at batch 1 and 8, with nothing else running. Report latency per 
 predict it.
 
 ### 11.3 Training cost
-GPU-hours from the training log; peak VRAM from PyTorch. Baseline 0.22 h, 216-epoch baseline 0.36-0.38 h,
-`sp_mixed` 0.35-0.44 h, frozen-gallery student 0.23 h on top of its 0.22 h teacher.
+GPU-hours from the training log; peak VRAM from PyTorch.
+
+| Run | GPU-h per run | Peak allocated VRAM |
+| --- | --- | --- |
+| Baseline, 120 epochs | 0.22-0.23 | 1.81 GB |
+| Baseline, 216 epochs | 0.36-0.40 (mean 0.38) | 1.81 GB |
+| `sp_mixed` | 0.35-0.44 (mean 0.40) | 3.17 GB |
+| Frozen-gallery student | 0.23-0.24, plus 0.22 for its teacher | 1.83 GB |
+
+Identical configurations vary by up to about 25 % in time. The project total is 50 real runs, 13.38 GPU-hours.
 
 ## 12. Negative results and limitations
 
 Negative results (keep them in the report; they are part of the contribution):
-1. Our first method (3-stage TBSD) did not beat the equal-GPU-hour baseline with a linear map.
-2. No low-data regularisation effect at 10/25/50 % of identities.
-3. Class-attention token selection (EViT rule) is worse than random selection for cross-budget matching. Cause
-   unknown.
-4. Token merging is dominated by lower resolution on Market-1501 (accuracy and latency).
-5. The prior-work frozen-gallery student matches our method on low resolution.
-6. Per-budget BatchNorm statistics are not the cause of the full-cost deficit.
+1. No clear win over the prior-work-style frozen-gallery student.
+2. Worse than the similar-GPU-hour baseline at full cost; borderline worse at 2.22 GFLOPs.
+3. Our first method (3-stage TBSD) did not beat that baseline + linear map at low resolution.
+4. No low-data regularisation effect at 10/25/50 % of identities.
+5. Class-attention token selection (EViT rule) is below random for cross-budget matching: clear in most models,
+   a tie on the baselines at keep 0.7. Cause unknown.
+6. Merging gives no single-image GPU speed-up.
+7. The per-query cascade is below fixed budgets.
+8. A non-linear post-hoc map does not improve on a linear one.
+9. Per-budget BatchNorm statistics are not the cause of the full-cost deficit.
 
 Limitations:
 1. One dataset, natively 128x64, so low resolution loses little real information here; results may not
-   transfer to higher-resolution data. A second dataset (CUHK03-NP) is future work.
-2. One backbone with 3 seeds (ViT-S); ViT-B one seed.
-3. Full-cost deficit of about 1.2 mAP.
-4. Narrow novelty: a combination of existing techniques (credited).
-5. No re-implementation of SFSC, PrunNet or D3still; frozen-gallery baseline implements only the absolute
-   term of Suma and Tolias.
-6. Training budgets only approximately equal; GFLOPs analytic.
+   transfer to higher-resolution data.
+2. No validation split: the method and budgets were chosen on test results.
+3. Missing baselines: single-pass multi-resolution augmentation, a small model at equal GFLOPs, a student of
+   the 216-epoch teacher.
+4. Missing ablations: `sp_mixed` without alignment, and with separate classifiers.
+5. One backbone with 3 seeds (ViT-S); ViT-B one seed. Three seeds cannot settle borderline results.
+6. Merging is not official ToMe.
+7. Narrow novelty: a combination of existing techniques (credited).
+8. No re-implementation of SFSC, PrunNet or D3still; the frozen-gallery student is an adaptation of Suma and
+   Tolias, not their method.
+9. Training budgets only similar; GFLOPs analytic; latency on one machine.
 
 ## 13. Related work in one page
 
 | Paper | One-line summary | Relation to us |
 | --- | --- | --- |
+| **DaRe (CVPR 2018)** | Budgeted person re-ID: queries exit early by nearest-gallery distance | Already did our per-query idea |
+| **MatFormer (NeurIPS 2024)** | One ViT; smaller sub-models query a gallery from the largest | Already did one-ViT cheap-query retrieval (width, not re-ID) |
+| **BTNet (BMVC 2023)** | Resolution-specific branches with a shared trunk and compatible embeddings | Already linked resolution, compute and compatibility (faces) |
+| VPFA (ICML 2026) | Post-hoc MLP from low- to high-resolution features | Basis of our non-linear-map baseline |
+| ThinkingViT (CVPR 2026) | Nested ViT that reuses the first stage when it escalates | Template for iteration 2 |
 | SFSC (CVPR 2023) | One CNN with width-sliced sub-models whose features are mutually compatible; Market-1501, MSMT17 | Same goal, CNN width instead of input size |
-| D3still (CVPR 2024) | Small query network distilled to rank like a large gallery network | Our alignment loss is its feature term |
-| Suma and Tolias (WACV 2023) | Frozen gallery network; same-architecture student for small-resolution queries, label-free | Our frozen-gallery baseline |
+| D3still (CVPR 2024) | Small query network distilled to rank like a large gallery network | Our alignment loss is in the family of its feature term |
+| Suma and Tolias (WACV 2023) | Frozen gallery network; same-architecture student for small-resolution queries, label-free | Our frozen-gallery baseline is adapted from it |
 | ResFormer (CVPR 2023) | Multi-resolution ViT training; detached high-resolution class token teaches low resolution | Mechanism of our low-resolution pass; no retrieval |
-| PrunNet (arXiv 2025) | One network, pruned sub-networks compatible with the dense one, incl. ViT-S and re-ID | One-network multi-budget compatibility, but weights pruned, no measured speed-up |
-| DVT (NeurIPS 2021) / RANet (CVPR 2020) | Cascades of increasing tokens / resolution with confidence-based early exit | Basis of our per-query cascade |
+| PrunNet (CVPR 2025) | One network, pruned sub-networks compatible with the dense one, incl. ViT-S and re-ID | One-network multi-budget compatibility, but weights pruned, no measured speed-up |
+| DVT (NeurIPS 2021) / RANet (CVPR 2020) | Cascades of increasing tokens / resolution with confidence-based early exit | Classification relatives of our cascade |
 | ToMe (ICLR 2023), EViT (ICLR 2022) | Token merging; attention-based token keeping | Our token-reduction tools |
 | Cross-resolution re-ID (e.g. RFD, 2021) | Low-resolution queries vs high-resolution gallery as a degradation; query upsampled | Same geometry, but no compute saving |
 
@@ -331,26 +392,40 @@ Limitations:
 | `adaptive.py` | Per-query cascade evaluation |
 | `bench_latency.py` | Latency and throughput (`--extra` adds low-resolution and gradual-merge rows) |
 | `aggregate_mech.py` | Mean ± std over seeds |
-| `run_iter3.sh`, `run_iter4.sh` | Experiment queues (resumable, auto-commit) |
+| `nonlinear_map.py`, `aggregate_nonlinear.py` | VPFA-inspired map baseline |
+| `mech_diag.py`, `aggregate_mech_diag.py` | Mechanism diagnostic |
+| `run_iter2.sh`, `run_iter3.sh`, `run_iter4.sh` | Past experiment queues. **They commit and push automatically** |
 
 Key code points: the cheap pass is chosen in `train.py` (`--sd-mode mixed` picks `lowres` or `merge_r` per
 step); the alignment term is `(1 - F.cosine_similarity(bn_s, bn.detach())).mean()`; low resolution in
 `ReIDViT.backbone(..., hw=...)` resizes the image and the position embedding.
 
 ## 15. How to reproduce (Git Bash, from the project folder)
+
+**Every output below goes to a new `repro` path on purpose.** `train.py` refuses to overwrite an existing run, also
+with `--resume`, but the other scripts have no guard: pointing their `--out` at an existing file replaces it.
+Do not copy commands with original paths from the logs.
+
 ```bash
 # our method, seed 0
-.venv/Scripts/python.exe train.py --data C:/Users/user/data/Market-1501-v15.09.15 --out runs/sp_mixed_s0 --seed 0 --sd-mode mixed
+.venv/Scripts/python.exe train.py --data C:/Users/user/data/Market-1501-v15.09.15 --out runs/repro_sp_mixed_s0 --seed 0 --sd-mode mixed
 # diagnostics (asymmetric mAP for every cheap setting)
-.venv/Scripts/python.exe mechanism.py --data C:/Users/user/data/Market-1501-v15.09.15 --ckpts runs/sp_mixed_s0/last.pth --out runs/sp_mixed_s0/mech.csv
-# frozen-gallery student on the baseline of the same seed
-.venv/Scripts/python.exe train.py --data C:/Users/user/data/Market-1501-v15.09.15 --out runs/fg_mixed_s0 --seed 0 --teacher runs/base_s0/last.pth --sd-mode mixed --epochs 96
+.venv/Scripts/python.exe mechanism.py --data C:/Users/user/data/Market-1501-v15.09.15 --ckpts runs/repro_sp_mixed_s0/last.pth --out runs/repro_sp_mixed_s0/mech.csv
+# frozen-gallery student on the existing baseline of the same seed (the teacher is only read)
+.venv/Scripts/python.exe train.py --data C:/Users/user/data/Market-1501-v15.09.15 --out runs/repro_fg_mixed_s0 --seed 0 --teacher runs/base_s0/last.pth --sd-mode mixed --epochs 96
+# its evaluation: the gallery comes from the teacher
+.venv/Scripts/python.exe mechanism.py --data C:/Users/user/data/Market-1501-v15.09.15 --ckpts runs/repro_fg_mixed_s0/last.pth --gallery-ckpt runs/base_s0/last.pth --out runs/repro_fg_mixed_s0/mech.csv
 # cascade
-.venv/Scripts/python.exe adaptive.py --data C:/Users/user/data/Market-1501-v15.09.15 --ckpts runs/sp_mixed_s0/last.pth --out runs/adaptive.csv
+.venv/Scripts/python.exe adaptive.py --data C:/Users/user/data/Market-1501-v15.09.15 --ckpts runs/repro_sp_mixed_s0/last.pth --out runs/repro_adaptive.csv
 # latency (machine idle)
-.venv/Scripts/python.exe bench_latency.py --extra --out runs/latency_extra.csv
+.venv/Scripts/python.exe bench_latency.py --extra --out runs/repro_latency_extra.csv
 ```
-Expected: about 0.4 GPU-hours per two-pass run on an RTX 5080; full-cost mAP around 84.
+Run each line once; a second run overwrites the first `repro` CSVs (training refuses). The `aggregate*.py` scripts write to the
+original summary files by default, so do not run them just to look at results.
+
+Expected: about 0.4 GPU-hours per two-pass run on an RTX 5080; full-cost mAP around 84. Expect close, not
+identical, numbers: GPU training is not bit-exact, and merge evaluation alone varies by up to 0.05 mAP. These
+commands have not been re-run end to end.
 
 ## 16. Glossary
 - **AMP:** automatic mixed precision; 16-bit arithmetic where safe, for speed.
@@ -362,17 +437,18 @@ Expected: about 0.4 GPU-hours per two-pass run on an RTX 5080; full-cost mAP aro
 - **Compatibility:** embeddings from different computations can be compared directly.
 - **Cosine similarity:** dot product of length-normalised vectors.
 - **Drift:** difference between an image's cheap and full embeddings.
-- **Equal-GPU-hour baseline:** a baseline given as much training time as the method.
+- **Similar-GPU-hour baseline:** a baseline given about as much training time as the method.
+- **Clear / borderline / tie:** our three verdicts on a difference (Section 8.1).
 - **GFLOPs:** billions of multiply-accumulates per image (analytic).
 - **Gallery / query:** the searched collection / the image we search with.
 - **Label smoothing:** soft target distribution for cross-entropy.
 - **Linear (ridge) map:** a matrix fitted by least squares with a penalty, mapping cheap to full embeddings.
 - **mAP, Rank-1:** Section 2.3.
-- **Oracle:** an unrealistic control that uses information unavailable at test time, as an upper bound.
+- **Oracle:** a control that uses information unavailable at test time. Our drift oracle is not an upper bound.
 - **PK sampling:** P identities x K images per batch.
 - **Seed:** the random-number starting point; different seeds = independent repetitions.
 - **Stop-gradient (sg):** treat a value as a constant in back-propagation.
 - **Token:** one vector per image patch (plus the class token).
-- **Token merging (ToMe):** averaging similar tokens to reduce their number.
+- **Token merging (ToMe-style):** averaging similar tokens to reduce their number; ours differs from official ToMe.
 - **Triplet loss:** pulls same-person embeddings together, pushes others apart by a margin.
 - **ViT-S/16:** Vision Transformer, small (width 384, 12 blocks, 6 heads), 16x16 patches.

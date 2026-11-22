@@ -5,16 +5,32 @@ and `make_fake_market.py` (tiny random dataset to check the install).
 
 **Status:** unit-checked; run end to end on CPU and (2026-11-14) on the RTX 5080 with a synthetic dataset.
 It has not been run on Market-1501. Treat the first real run as the test: see "Sanity checks" below.
-Project venv: `.venv` (torch 2.15.0+cu132). One-command queue: `bash run_iter1.sh <Market-1501 root>`.
+Project venv: `.venv` (torch 2.15.0+cu132). Use the guarded commands below. The `run_iter*.sh` queues are
+records of past runs, do not rerun them: they write to the original result paths wherever `last.pth` is missing
+(as in a fresh clone), and `run_iter2.sh` to `run_iter4.sh` also commit and push.
 History and current state: `PROGRESS_LOG.md`.
+
+## Before running anything: only `train.py` protects existing results
+
+- `train.py` refuses an `--out` that holds `last.pth`, `ckpt.pth` or `log.json` (except to resume an unfinished run).
+- Every other script overwrites whatever `--out` points to, and checkpoints are not in Git.
+- Always pass `--out` with a new path. Several defaults are real result files (for example `runs/mechanism.csv`,
+  `runs/adaptive.csv`, `runs/latency.csv`).
+- The `aggregate*.py` and `plot_results.py` scripts overwrite the committed summaries and figures.
+- The commands below are for **Git Bash**. Each begins with `[ -e <output> ] ||`, which skips it if the output
+  already exists. Keep that prefix, and change both paths if you rename an output.
 
 ## Setup
 
 1. Install a current PyTorch build with CUDA support for the RTX 5080 from the selector on pytorch.org.
 2. `pip install timm pillow numpy matplotlib`
 3. Download Market-1501. The folder must contain `bounding_box_train/`, `query/` and `bounding_box_test/`.
-4. Check the install: `python make_fake_market.py fake_market` then
-   `python train.py --data fake_market --out runs/smoke --epochs 1 --P 4 --K 2 --eval-every 1`
+4. Check the install:
+
+```bash
+[ -e fake_market_repro ] || python make_fake_market.py fake_market_repro
+[ -e runs/smoke_repro ] || python train.py --data fake_market_repro --out runs/smoke_repro --epochs 1 --P 4 --K 2 --eval-every 1
+```
 
 On Windows keep `--workers 4`. If RAM runs short (16 GB), lower it to 2.
 
@@ -22,22 +38,22 @@ On Windows keep `--workers 4`. If RAM runs short (16 GB), lower it to 2.
 
 Replace `DATA` with your Market-1501 path.
 
-```
+```bash
 # 1. Baseline ViT-S/16, full tokens
-python train.py --data DATA --out runs/base_s0 --seed 0
+[ -e runs/repro_base_s0 ] || python train.py --data DATA --out runs/repro_base_s0 --seed 0
 
 # 2. Sweep token reduction on the baseline (inference only, minutes)
-python evaluate.py --data DATA --ckpt runs/base_s0/last.pth --out runs/base_s0/sweep.csv
+[ -e runs/repro_base_s0/sweep.csv ] || python evaluate.py --data DATA --ckpt runs/repro_base_s0/last.pth --out runs/repro_base_s0/sweep.csv
 
 # 3. Token-budget self-distillation (same network: full-token pass teaches a merged-token pass)
-python train.py --data DATA --out runs/tbsd_s0 --seed 0 --sd-mode merge --sd-keep random
+[ -e runs/repro_tbsd_s0 ] || python train.py --data DATA --out runs/repro_tbsd_s0 --seed 0 --sd-mode merge --sd-keep random
 
 # 4. Same sweep on the self-distilled model
-python evaluate.py --data DATA --ckpt runs/tbsd_s0/last.pth --out runs/tbsd_s0/sweep.csv
+[ -e runs/repro_tbsd_s0/sweep.csv ] || python evaluate.py --data DATA --ckpt runs/repro_tbsd_s0/last.pth --out runs/repro_tbsd_s0/sweep.csv
 
 # 5. If time remains: low-data versions of 1 and 3
-python train.py --data DATA --out runs/base_id25_s0 --id-fraction 0.25
-python train.py --data DATA --out runs/tbsd_id25_s0 --id-fraction 0.25 --sd-mode merge --sd-keep random
+[ -e runs/repro_base_id25_s0 ] || python train.py --data DATA --out runs/repro_base_id25_s0 --id-fraction 0.25
+[ -e runs/repro_tbsd_id25_s0 ] || python train.py --data DATA --out runs/repro_tbsd_id25_s0 --id-fraction 0.25 --sd-mode merge --sd-keep random
 ```
 
 Each training run writes `log.json` (loss, mAP, Rank-1, training hours, peak VRAM) and `last.pth`.
@@ -70,7 +86,7 @@ Each sweep writes a CSV and a PNG with two panels: symmetric and asymmetric retr
 | `--sd-mode {merge,cls_attn,random}` | reduction used in the distilled pass |
 | `--sd-keep random` or `0.7` | keep ratio per reduction layer; `random` samples from 0.5 to 0.9 each step |
 | `--model vit_base_patch16_224` | larger backbone |
-| `evaluate.py --cpu` | run the sweep on CPU to get CPU throughput |
+| `evaluate.py --cpu` | run the sweep on CPU to get CPU throughput (give it its own new `--out`) |
 
 Tokens are reduced after the attention of blocks 4, 7 and 10; `keep` is the fraction of patch tokens kept
 at each of those three points, so `keep=0.7` leaves about 34% of patch tokens at the end.
@@ -82,9 +98,16 @@ atomically). It holds model, optimizer, AMP scaler, epoch, step (the LR schedule
 elapsed time, the metrics log, args and all RNG states (Python, NumPy, torch CPU/CUDA, PK sampler).
 It is deleted once `last.pth` is written, unless `--keep-ckpt`.
 
-- **Pause gracefully:** create an empty file `<out>/STOP` (e.g. `touch runs/tbsd_s0/STOP`). The run finishes
+- **Pause gracefully:** create an empty file `<out>/STOP` (e.g. `touch runs/repro_tbsd_s0/STOP`). The run finishes
   the current epoch, saves `ckpt.pth` and exits with code 3. Queue scripts stop when they see exit code 3.
-- **Resume:** rerun the *same* command with `--resume` (or rerun the queue script, which always passes it).
+- **Resume only an unfinished run.** `train.py` refuses to resume a finished run. A run killed before its first
+  checkpoint cannot be resumed either: start it again under a new `--out`.
+  Use the same arguments plus `--resume`, behind this check instead of the `[ -e ... ]` one:
+
+```bash
+[ -f runs/repro_tbsd_s0/ckpt.pth ] && [ ! -e runs/repro_tbsd_s0/last.pth ] && python train.py --data DATA --out runs/repro_tbsd_s0 --seed 0 --sd-mode merge --sd-keep random --resume
+```
+
   Key args (`--epochs`, `--lr`, `--seed`, modes...) must match the checkpoint or it refuses to resume.
 - Verified on CPU: pause after epoch 1 + resume gives bit-identical weights to an uninterrupted run.
   On GPU (cuDNN/AMP nondeterminism) and with `--workers > 0` (worker augmentation streams restart) the

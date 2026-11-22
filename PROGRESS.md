@@ -4,7 +4,22 @@ Current state at a glance. Detailed chronological record with exact commands and
 `PROGRESS_LOG.md`. Background, decisions and literature: `PROJECT_CONTEXT.md`.
 All numbers are Market-1501, ViT-S/16 (ImageNet-21k->1k augreg weights), 256x128, 120 epochs, unless stated.
 
-_Last updated: 2026-11-17 evening (iteration 1 complete; deliverables written)._
+_Last updated: 2026-11-22 (supervisor-review audit)._
+
+## CURRENT (2026-11-22): package ready for supervisor review. Nothing is running. Not committed.
+**This block supersedes every conflicting statement below.**
+- **Give:** `SUPERVISOR_BRIEF.md`, `REPORT_ITERATION1.md` (revised), `SUPERVISOR_REVIEW_AUDIT.md`.
+  `SUPERVISOR_QA.md` and `STUDY_GUIDE.md` were updated to match on 2026-11-22.
+- **Completed since 2026-11-17:** 2025-2026 literature review, non-linear map baseline, mechanism diagnostic.
+  All are now in the report.
+- **Results:** `sp_mixed` beats the 216-epoch baseline + best map at 1.12 G (+3.85) and 0.72 G (+12.61), is
+  borderline at 1.62 G (+0.64), loses at full cost (-1.16), is borderline worse at 2.22 G (-0.43), and is **not
+  clearly better than the frozen-gallery student** (ties, plus two borderline leads: r = 11 and 128x64).
+- **Known issues:** merging is not official ToMe; no validation split; missing multi-resolution-augmentation and
+  small-model baselines; one dataset; per-query idea is prior work (DaRe 2018).
+- **Do not run the commands further down this file as written:** they write to existing result paths and
+  overwrite CSVs (audit D17). `train.py` refuses to overwrite a run since 2026-11-22; the other scripts do not.
+- **Remaining (iteration 2):** report Section 10. No experiment has been started.
 
 ## ITERATION 1 COMPLETE (2026-11-17). Nothing is running.
 Deliverables: **`REPORT_ITERATION1.md`** (final report), **`STUDY_GUIDE.md`** (beginner explanation),
@@ -126,7 +141,7 @@ baseline). Per-seed teacher full-token mAP 83.89 / 84.71 / 84.75. Aggregates: `r
 
 Checkpoints (`*.pth`) are local only (git-ignored); metrics are on GitHub.
 
-### Exact resume commands (Git Bash, from the project folder)
+### Exact resume commands (HISTORY: do not run, these runs are finished and would be overwritten)
 - **Everything that is left, in order (recommended):**
   `bash run_iter3.sh /c/Users/user/data/Market-1501-v15.09.15 E D >> runs/queue_iter3.txt 2>&1`
   Finished runs are skipped (`last.pth` present); `sp_mixed_s1` continues from `ckpt.pth` at epoch 62; each
